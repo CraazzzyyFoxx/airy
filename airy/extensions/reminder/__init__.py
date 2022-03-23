@@ -14,7 +14,7 @@ from lightbulb import decorators
 from tortoise import exceptions
 from tortoise.expressions import Q
 
-from airy.utils import time, pass_options, formats
+from airy.utils import time, formats
 from airy.core import ReminderModel, AiryPlugin
 from airy.utils.time import utcnow
 
@@ -128,7 +128,6 @@ plugin = ReminderPlugin(name='Reminder')
 @lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
 @decorators.command("reminder", "Reminds you of something after a certain amount of time.")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
-@pass_options
 async def reminder(_: lightbulb.SlashContext):
     pass
 

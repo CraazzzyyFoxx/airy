@@ -3,7 +3,7 @@ import typing as t
 import hikari
 import lightbulb
 
-from airy.core import Airy, ActionMenusModel, AiryPlugin
+from airy.core import Airy, ActionMenusModel, AiryPlugin, AirySlashContext
 from airy.utils import EmbedConstructor
 
 
@@ -29,43 +29,18 @@ async def on_component(event: hikari.InteractionCreateEvent):
         return
 
 
-# @plugin.command()
-# @lightbulb.command("roles", "Manages Roles.")
-# @lightbulb.implements(lightbulb.SlashCommandGroup)
-# async def roles_cmd(_: lightbulb.Context):
-#     pass
-#
-#
-# @roles_cmd.child()
-# @lightbulb.command("interaction", "Manages Interaction Roles.")
-# @lightbulb.implements(lightbulb.SlashSubGroup)
-# async def roles_interaction_cmd(_: lightbulb.Context):
-#     pass
-#
-#
-# @roles_interaction_cmd.child()
-# @lightbulb.option('text', "Message text.",
-#                   required=False,
-#                   modifier=lightbulb.OptionModifier.CONSUME_REST,
-#                   )
-# @lightbulb.option('channel', "Text Channel",
-#                   required=True,
-#                   type=hikari.OptionType.CHANNEL,
-#                   channel_types=[hikari.ChannelType.GUILD_TEXT])
-# @lightbulb.command("create", "Create Interaction Roles.")
-# @lightbulb.implements(lightbulb.SlashSubCommand)
-# @pass_options('create')
-# async def roles_interaction_create_cmd(ctx: lightbulb.Context, text: hikari.Message, channel: hikari.GuildTextChannel):
-#     embed = EmbedConstructor()
-#     await embed.start(ctx)
+@plugin.command()
+@lightbulb.command("actionmenus", "Manages Roles.")
+@lightbulb.implements(lightbulb.SlashCommandGroup)
+async def actionmenus(_: AirySlashContext):
+    pass
 
 
-# @plugin.command()
-# @lightbulb.command("test", "Test Embed Creator")
-# @lightbulb.implements(lightbulb.SlashCommand)
-# async def roles_cmd(ctx: lightbulb.SlashContext):
-#     embed = EmbedConstructor()
-#     await embed.start(ctx)
+@actionmenus.child()
+@lightbulb.command("settings", "Manages Roles.")
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def actionmenus_settings(ctx: AirySlashContext):
+    pass
 
 
 # def load(bot: Airy):

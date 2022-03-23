@@ -33,7 +33,7 @@ tortoise_config = {
     },
     "apps": {
         "main": {
-            "models": ["airy.core.models.db"],
+            "models": ["aerich.models", "airy.core.models.db"],
             "default_connection": "default",
         }
     },

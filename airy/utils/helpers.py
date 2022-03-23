@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import typing as t
 
 import hikari
 import lightbulb
+
+from fuzzywuzzy import process
 
 from airy.core.models import errors
 from airy.core.models.context import AirySlashContext
@@ -326,3 +329,18 @@ def is_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
         except ValueError:
             return None
 
+
+async def is_role(ctx: AirySlashContext, value: t.Union[int, str]):
+    roles = ctx.bot.cache.get_roles_view_for_guild(ctx.guild_id)
+
+    if (role := roles.get(value)) is not None:  # type: ignore
+        return role
+
+    role_names = [role.name for role in roles.values()]
+    role_name = await asyncio.threads.to_thread(process.extractOne, value, choices=role_names)
+
+    for role in roles.values():
+        if role.name == role_name:
+            return role
+
+    return None

@@ -6,7 +6,6 @@ from lightbulb import checks, decorators, plugins
 
 from airy.core.models import VoiceChannelCreatorModel
 from airy.utils.time import utcnow
-from airy.utils import pass_options
 
 from .room import VoiceRoom
 from .cache import Cache
@@ -64,9 +63,8 @@ async def voice_room(_: lightbulb.Context):
                   type=hikari.OptionType.BOOLEAN)
 @lightbulb.option("auto_increment", "Whether to number created channels (Only if `editable` is False. Default: True).",
                   type=hikari.OptionType.BOOLEAN)
-@decorators.command("create", "Initializes Voice Channels Creator")
+@decorators.command("create", "Initializes Voice Channels Creator", pass_options=True)
 @decorators.implements(lightbulb.SlashSubCommand)
-@pass_options('create')
 async def voice_room_create(ctx: lightbulb.SlashContext,
                             channel: hikari.GuildVoiceChannel,
                             channel_name: str,

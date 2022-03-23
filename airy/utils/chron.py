@@ -1,31 +1,6 @@
 import datetime as dt
-import time
 
 from . import string
-
-
-def sys_time() -> str:
-    return time.strftime("%H:%M:%S")
-
-
-def utc_time() -> str:
-    return dt.datetime.utcnow().strftime("%H:%M:%S")
-
-
-def short_date(obj: dt.datetime) -> str:
-    return obj.strftime("%d/%m/%y")
-
-
-def short_date_and_time(obj: dt.datetime) -> str:
-    return obj.strftime("%d/%m/%y %H:%M:%S")
-
-
-def long_date(obj: dt.datetime) -> str:
-    return obj.strftime("%d %b %Y")
-
-
-def long_date_and_time(obj: dt.datetime) -> str:
-    return obj.strftime("%d %b %Y at %H:%M:%S")
 
 
 def short_delta(delta: dt.timedelta, ms: bool = False) -> str:

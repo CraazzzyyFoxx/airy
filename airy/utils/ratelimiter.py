@@ -25,7 +25,7 @@ class BucketType(enum.IntEnum):
 
 class RateLimiter:
     def __init__(self, period: float, limit: int, bucket: BucketType, wait: bool = True) -> None:
-        """Rate Limiter implementation for Sned
+        """Rate Limiter implementation for Airy
 
         Parameters
         ----------
@@ -50,7 +50,7 @@ class RateLimiter:
         self._queue: t.Deque[asyncio.Event] = deque()
         self._task: t.Optional[asyncio.Task[t.Any]] = None
 
-    def _get_key(self, ctx_or_message: t.Union[lightbulb.Context, miru.Context, hikari.PartialMessage]) -> str:
+    def _get_key(self, ctx_or_message: t.Union[lightbulb.Context, miru.Context, hikari.PartialMessage]) -> int:
         """Get key for cooldown bucket"""
 
         assert ctx_or_message.member and ctx_or_message.author

@@ -89,9 +89,8 @@ async def on_tempmute_timer_complete(event: MuteEvent):
 
 @mod_plugin.command()
 @lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
-@lightbulb.command("member", "Commands for manage members")
+@lightbulb.command("member", "Commands for manage members", pass_options=True)
 @lightbulb.implements(lightbulb.SlashCommandGroup)
-@utils.pass_options
 async def member_cmd(_: AirySlashContext):
     pass
 
