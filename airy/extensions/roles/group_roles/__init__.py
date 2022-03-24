@@ -9,6 +9,8 @@ import miru
 from airy.core import GroupRoleModel, HierarchyRoles, EntryRoleGroupModel, AiryPlugin, AirySlashContext
 from airy.utils import utcnow, ColorEnum, RespondEmbed, FieldPageSource, AiryPages
 
+from .buttons import MainView
+
 
 class ChangedRoleStatus(IntEnum):
     ADDED = 0
@@ -103,110 +105,6 @@ class GroupRolePlugin(AiryPlugin):
 group_role_plugin = GroupRolePlugin('GroupRole')
 
 
-class MainEmbed(hikari.Embed):
-    def __init__(self, ctx: AirySlashContext, role: hikari.Role, entries: t.List[EntryRoleGroupModel]):
-        super().__init__(title="Group Role",
-                         color=ColorEnum.teal,
-                         timestamp=utcnow())
-
-        entries_description = []
-
-        for index, entry in enumerate(entries, 1):
-            entry_role = ctx.bot.cache.get_role(entry.role_id)
-            entries_description.append(f"**{index}.** {entry_role.mention} (ID: {entry_role.id})")
-
-        description = f'{role.mention} (ID: {role.id}) \n>>> '
-        description += '\n'.join(entries_description)
-
-        self.description = description
-
-
-class Modal(miru.Modal):
-    def __init__(self, ) -> None:
-        super().__init__("Enter Role")
-        self.data: t.Optional[str] = None
-        self.item = miru.TextInput(label="Role name or Role id",
-                                   placeholder="For example: Airy or 947964654230052876")
-        self.add_item(self.item)
-
-    async def callback(self, ctx: miru.ModalContext) -> None:
-        self.data = ctx.values[self.item]
-
-
-class State(IntEnum):
-    ADD = 0
-    DELETE = 1
-    EXIT = 2
-    DESTROY = 3
-
-
-class MainView(miru.View):
-    def __init__(self, ctx: AirySlashContext):
-        super().__init__(timeout=20)
-        self.ctx = ctx
-        self.state: t.Optional[State] = None
-        self.target_role: t.Optional[hikari.Role] = None
-
-    async def prepare_role(self, data: str):
-        roles = self.ctx.bot.cache.get_roles_view_for_guild(self.ctx.guild_id)
-
-        def resolve(data):
-            if data.isdigit():
-                data = hikari.Snowflake(data)
-                for role_id in roles.keys():
-                    if role_id == data:
-                        return roles[role_id]
-            else:
-                for role in roles.values():
-                    if role.name == data:
-                        return role
-
-            return None
-
-        role = resolve(data)
-        if role:
-            self.target_role = role
-        else:
-            roles = await self.ctx.bot.rest.fetch_roles(self.ctx.guild_id)
-            role = resolve(data)
-            self.target_role = role
-
-    async def view_check(self, context: miru.ViewContext) -> bool:
-        return self.ctx.author.id == context.author.id
-
-    async def on_timeout(self):
-        self.state = State.EXIT
-        self.stop()
-
-    @miru.button(label="Add Sub Role", style=hikari.ButtonStyle.PRIMARY)
-    async def add(self, button: miru.Button, ctx: miru.ViewContext) -> None:
-        self.state = State.ADD
-        modal = Modal()
-        await ctx.respond_with_modal(modal)
-        await modal.wait()
-        await self.prepare_role(modal.data)
-        self.stop()
-
-    @miru.button(label="Delete Sub Role", style=hikari.ButtonStyle.DANGER)
-    async def delete(self, button: miru.Button, ctx: miru.ViewContext) -> None:
-        self.state = State.DELETE
-        modal = Modal()
-        await ctx.respond_with_modal(modal)
-        await modal.wait()
-        await self.prepare_role(modal.data)
-        self.stop()
-
-    @miru.button(label="Destroy", style=hikari.ButtonStyle.SECONDARY)
-    async def destroy(self, button: miru.Button, ctx: miru.ViewContext) -> None:
-        self.state = State.DESTROY
-        self.stop()
-
-    @miru.button(label="Exit", style=hikari.ButtonStyle.SUCCESS)
-    async def exit(self, button: miru.Button, ctx: miru.ViewContext) -> None:
-        self.state = State.EXIT
-        self.stop()
-
-
 @group_role_plugin.command()
 @lightbulb.add_checks(
     lightbulb.checks.has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS),
@@ -247,68 +145,12 @@ async def group_role_delete(ctx: lightbulb.SlashContext):
 
 @group_role_.child()
 @lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE)
-@lightbulb.option('sub_role', 'If the role is added, then it is removed and vice versa',
-                  type=hikari.OptionType.ROLE,
-                  required=False)
-@lightbulb.command("manage", "Manages Group Role.", ephemeral=True)
+@lightbulb.command("manage", "Manages Group Role.", ephemeral=True, pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_manage(ctx: AirySlashContext):
-    group_role = ctx.options.group_role
-    model: GroupRoleModel = (await GroupRoleModel
-                             .filter(guild_id=ctx.guild_id, role_id=ctx.options.group_role.id)
-                             .first()
-                             .prefetch_related("entries"))
-
-    if model is None:
-        return await ctx.respond(embed=RespondEmbed.error("Group role does not exist"))
-
-    if ctx.options.sub_role:
-        if ctx.options.sub_role == ctx.options.group_role:
-            return await ctx.respond(embed=RespondEmbed.error("Group role and Sub role must be different"))
-        if ctx.options.sub_role.id in [entry.role_id for entry in model.entries]:
-            if len(model.entries) == 1:
-                await model.delete()
-                return await ctx.respond(embed=RespondEmbed.success("Group role was deleted"))
-            else:
-                await EntryRoleGroupModel.filter(id_id=model.id, role_id=ctx.options.sub_role.id).delete()
-                for entry in model.entries.related_objects:
-                    if entry.role_id == ctx.options.sub_role.id:
-                        model.entries.related_objects.remove(entry)
-                return await ctx.respond(embed=MainEmbed(ctx, group_role, model.entries.related_objects))
-
-    view = MainView(ctx)
-    embed = MainEmbed(ctx, group_role, model.entries.related_objects)
-    resp = await ctx.respond(embed=embed, components=view.build())
-    view.start(await resp.message())
-    while view.state != State.EXIT:
-        await view.wait()
-        if view.target_role:
-            if view.state == State.ADD:
-                if view.target_role.id not in [entry.role_id for entry in model.entries]:
-                    entry_model = EntryRoleGroupModel(id_id=model.id, role_id=view.target_role.id)
-                    await entry_model.save()
-                    model.entries.related_objects.append(entry_model)
-            elif view.state == State.DELETE:
-                if view.target_role.id in [entry.role_id for entry in model.entries]:
-                    if len(model.entries.related_objects) == 1:
-                        await model.delete()
-                        return await ctx.respond(embed=RespondEmbed.success("Group role was deleted"))
-
-                    await EntryRoleGroupModel.filter(id_id=model.id, role_id=view.target_role.id).delete()
-                    for entry in model.entries.related_objects:
-                        if entry.role_id == view.target_role.id:
-                            model.entries.related_objects.remove(entry)
-
-            view = MainView(ctx)
-            embed = MainEmbed(ctx, group_role, model.entries.related_objects)
-            resp = await ctx.edit_last_response(embed=embed, components=view.build())
-            view.start(resp)
-
-        if view.state == State.DESTROY:
-            await model.delete()
-            return await ctx.edit_last_response("Group role was deleted", components=[], embed=None)
-
-    await ctx.edit_last_response("Aborting...", components=[], embed=None)
+async def group_role_manage(ctx: AirySlashContext, group_role: hikari.Role):
+    view = MainView(ctx, group_role)
+    resp = await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+    await view.start(await resp.message())
 
 
 @group_role_.child()

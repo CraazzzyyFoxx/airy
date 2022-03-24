@@ -141,6 +141,10 @@ async def member_unban(ctx: AirySlashContext, user, reason):
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def member_banlist(ctx: AirySlashContext):
     bans = await ctx.bot.rest.fetch_bans(ctx.get_guild())
+
+    if not bans:
+        return ctx.respond(embed=utils.RespondEmbed.error("No Bans"))
+
     lst = pag.EmbedPaginator()
 
     @lst.embed_factory()
