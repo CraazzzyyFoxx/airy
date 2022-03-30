@@ -29,7 +29,7 @@ class Airy(BotApp):
             prefix="dev",
             default_enabled_guilds=bot_config.dev_guilds,
             intents=hikari.Intents.ALL,
-            help_slash_command=True,
+            help_slash_command=False,
             cache_settings=hikari.CacheSettings(
                 components=hikari.CacheComponents.ALL,
                 max_dm_channel_ids=300
