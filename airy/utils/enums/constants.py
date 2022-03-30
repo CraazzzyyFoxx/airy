@@ -1,9 +1,9 @@
-from enum import Enum, IntEnum
-
 import hikari
 
+from hikari.internal.enums import Enum
 
-class ColorEnum(IntEnum):
+
+class ColorEnum(int, Enum):
     default = 0
     teal = 0x1abc9c
     dark_teal = 0x11806a
@@ -26,7 +26,7 @@ class ColorEnum(IntEnum):
     light_grey = 0x979c9f
     darker_grey = 0x546e7a
     blurple = 0x7289da
-    greyple = 0x99aab5
+    grey = 0x99aab5
     dark_theme = 0x36393F
 
     ERROR: int = 0xFF0000
@@ -43,10 +43,24 @@ class RespondEmojiEnum(str, Enum):
     NONE = "<:greyTick:882620201764524122>"
 
 
-class RespondIconsEnum(Enum):
-    SUCCESS = hikari.files.URL("https://cdn.discordapp.com/emojis/882620180365185086")
-    ERROR = hikari.files.URL("https://cdn.discordapp.com/emojis/882620191178129479")
-    NONE = hikari.files.URL("https://cdn.discordapp.com/emojis/882620201764524122")
+class RespondIconsEnum(str, Enum):
+    SUCCESS = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854231283929098"))
+    ERROR = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854215475597362"))
+    NONE = str(hikari.files.URL("https://cdn.discordapp.com/emojis/882620201764524122"))
+
+
+class MenuEmojiEnum(str, Enum):
+    ADD = "<:add:956860077506183189>"
+    REMOVE = "<:remove:956860179079634994>"
+    SAVE = "<:save:956861503171076166>"
+    TRASHCAN = "<:trashcan:956861893308461086>"
+
+
+class MenuIconsEnum(str, Enum):
+    ADD = "https://cdn.discordapp.com/emojis/956860077506183189"
+    REMOVE = "https://cdn.discordapp.com/emojis/956860179079634994"
+    SAVE = "https://cdn.discordapp.com/emojis/956861503171076166"
+    TRASHCAN = "https://cdn.discordapp.com/emojis/956861893308461086"
 
 
 class EmojisEnum(str, Enum):
@@ -57,14 +71,11 @@ class EmojisEnum(str, Enum):
     SLOWMODE = "<:slowmode:951913313577603133>"
     MOD_SHIELD = "<:mod_shield:923752735768190976>"
 
-    trashcan = "<:trashcan:911148790860369931>"
-
     bullet = "\u2022"
     check_mark = "\u2705"
     cross_mark = "\u274C"
     new = "\U0001F195"
     pencil = "\u270F"
-
 
     # Badges
     # BUGHUNTER = "<:bughunter:927590809241530430>"

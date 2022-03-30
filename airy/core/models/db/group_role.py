@@ -29,7 +29,7 @@ class HierarchyRoles(IntEnum):
 class GroupRoleModel(Model):
     id = fields.IntField(pk=True)
     guild_id: hikari.Snowflake = fields.BigIntField()
-    role_id: hikari.Snowflake = fields.BigIntField()
+    role_id: hikari.Snowflake = fields.BigIntField(unique=True)
     hierarchy = fields.IntEnumField(HierarchyRoles, default=HierarchyRoles.NONE)
 
     entries: fields.ReverseRelation['EntryRoleGroupModel']
@@ -39,6 +39,7 @@ class GroupRoleModel(Model):
 
         table = "role_group"
         table_description = "Stores information about the role groups"
+        unique_together = (("guild_id", "role_id"),)
 
 
 class EntryRoleGroupModel(Model):
@@ -47,7 +48,7 @@ class EntryRoleGroupModel(Model):
                                                                            to_field='id',
                                                                            source_field='id',
                                                                            pk=True)
-    role_id = fields.BigIntField()
+    role_id = fields.BigIntField(unique=True)
 
     class Meta:
         """Metaclass to set table name and description"""

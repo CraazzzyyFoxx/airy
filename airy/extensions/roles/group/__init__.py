@@ -1,15 +1,12 @@
-import typing as t
-
 from enum import IntEnum
 
 import hikari
 import lightbulb
-import miru
 
 from airy.core import GroupRoleModel, HierarchyRoles, EntryRoleGroupModel, AiryPlugin, AirySlashContext
-from airy.utils import utcnow, ColorEnum, RespondEmbed, FieldPageSource, AiryPages
+from airy.utils import RespondEmbed, FieldPageSource, AiryPages
 
-from .buttons import MainView
+from .menu import MenuView
 
 
 class ChangedRoleStatus(IntEnum):
@@ -41,10 +38,7 @@ class GroupRolePlugin(AiryPlugin):
         self.bot.subscribe(hikari.MemberUpdateEvent, self.on_member_update)
 
     async def on_member_update(self, event: hikari.MemberUpdateEvent):
-        if event.member is None or event.old_member is None:
-            return
-
-        if len(event.member.role_ids) < 1:
+        if event.member is None or event.old_member is None or len(event.member.role_ids) < 1:
             return
 
         changed_role = ChangedRole(event)
@@ -59,7 +53,6 @@ class GroupRolePlugin(AiryPlugin):
 
         for role_model in role_models:
             entries = {r_m.role_id for r_m in role_model.entries}
-
             diff = entries - set(event.member.role_ids)
             group_role = self.bot.cache.get_role(role_model.role_id)
 
@@ -93,11 +86,13 @@ class GroupRolePlugin(AiryPlugin):
                     else:
                         await self.remove_role(event.member, role_model.role_id)
 
-    async def add_role(self, member: hikari.Member, role_id: hikari.Snowflake):
+    @staticmethod
+    async def add_role(member: hikari.Member, role_id: hikari.Snowflake):
         if role_id not in member.role_ids:
             await member.add_role(role_id)
 
-    async def remove_role(self, member: hikari.Member, role_id: hikari.Snowflake):
+    @staticmethod
+    async def remove_role(member: hikari.Member, role_id: hikari.Snowflake):
         if role_id in member.role_ids:
             await member.remove_role(role_id)
 
@@ -111,7 +106,7 @@ group_role_plugin = GroupRolePlugin('GroupRole')
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS)
 )
-@lightbulb.command("grouprole", "Shows configuration of the mute role.")
+@lightbulb.command("grouprole", "grouprole")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def group_role_(_: AirySlashContext):
     pass
@@ -121,42 +116,61 @@ async def group_role_(_: AirySlashContext):
 @lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE)
 @lightbulb.option('sub_role', 'Sub role.', type=hikari.OptionType.ROLE)
 @lightbulb.option('hierarchy', 'Sub role.', choices=HierarchyRoles.to_choices())
-@lightbulb.command("create", "Creates Group Role.")
+@lightbulb.command("create", "Creates Group Role.", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_create(ctx: AirySlashContext):
+async def group_role_create(ctx: AirySlashContext, group_role: hikari.Role, sub_role: hikari.Role, hierarchy: str):
+    model = await GroupRoleModel.filter(guild_id=ctx.guild_id, role_id=group_role.id).first()
+    if model:
+        return await ctx.respond(embed=RespondEmbed.error("The specified group role already exists"),
+                           flags=hikari.MessageFlag.EPHEMERAL)
+
     model = GroupRoleModel(guild_id=ctx.guild_id,
-                           role_id=ctx.options.group_role.id,
-                           hierarchy=HierarchyRoles.try_value(ctx.options.hierarchy)
+                           role_id=group_role.id,
+                           hierarchy=HierarchyRoles.try_value(hierarchy)
                            )
-    await model.save()
-    await EntryRoleGroupModel.create(id_id=model.id, role_id=ctx.options.sub_role.id)
-    await ctx.respond(embed=RespondEmbed.success('Successfully created.'), flags=hikari.MessageFlag.EPHEMERAL)
+
+    await model.save(force_update=True)
+    await EntryRoleGroupModel.get_or_create(defaults={"role_id": ctx.options.sub_role.id}, id_id=model.id)
+
+    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> \n**{1}.** {sub_role.mention} (ID: {sub_role.id})'
+    await ctx.respond(embed=RespondEmbed.success('Successfully created.', description=description))
 
 
 @group_role_.child()
 @lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE, required=True)
-@lightbulb.command("delete", "Deletes Group Role.")
+@lightbulb.command("delete", "Deletes Group Role.", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_delete(ctx: lightbulb.SlashContext):
+async def group_role_delete(ctx: lightbulb.SlashContext, group_role: hikari.Role):
+    model = await GroupRoleModel.filter(guild_id=ctx.guild_id,
+                                        role_id=ctx.options.group_role.id).first()
     await GroupRoleModel.filter(guild_id=ctx.guild_id,
                                 role_id=ctx.options.group_role.id).delete()
-    await ctx.respond(embed=RespondEmbed.success('Successfully deleted.'), flags=hikari.MessageFlag.EPHEMERAL)
+
+    entries_description = []
+    for index, entry in enumerate(model.entries, 1):
+        entry_role = ctx.bot.cache.get_role(entry.role_id)
+        entries_description.append(f"**{index}.** {entry_role.mention} (ID: {entry_role.id})")
+
+    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> '
+    description += '\n'.join(entries_description)
+    await ctx.respond(embed=RespondEmbed.success('Successfully deleted.', description=description))
 
 
 @group_role_.child()
 @lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE)
-@lightbulb.command("manage", "Manages Group Role.", ephemeral=True, pass_options=True)
+@lightbulb.command("manage", "Manages Group Role.", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def group_role_manage(ctx: AirySlashContext, group_role: hikari.Role):
-    view = MainView(ctx, group_role)
-    resp = await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
-    await view.start(await resp.message())
+    view = MenuView(ctx, group_role)
+    await view.initial_send()
 
 
 @group_role_.child()
 @lightbulb.command("list", "Shows list of the group roles.")
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def group_role_list(ctx: AirySlashContext):
+    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
+
     models = await GroupRoleModel.filter(guild_id=ctx.guild_id).all().prefetch_related("entries")
     if len(models) == 0:
         return await ctx.respond(embed=RespondEmbed.error("Group roles missing"))
@@ -175,5 +189,4 @@ async def group_role_list(ctx: AirySlashContext):
     source = FieldPageSource(entries, per_page=2)
     source.embed.title = 'Group Roles'
     pages = AiryPages(source=source, ctx=ctx, compact=True)
-    await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
     await pages.send(ctx.interaction, responded=True)

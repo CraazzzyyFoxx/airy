@@ -334,13 +334,13 @@ def is_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
 async def is_role(ctx: t.Union[AirySlashContext, miru.ViewContext], value: t.Union[int, str]):
     """Checks that provided value is role by id and name"""
     roles = ctx.bot.cache.get_roles_view_for_guild(ctx.guild_id)
-
-    if (role := roles.get(value)) is not None:  # type: ignore
-        return role
+    if value.isdigit():
+        if (role := roles.get(hikari.Snowflake(value))) is not None:
+            return role
 
     role_names = [role.name for role in roles.values()]
     role_name = await asyncio.threads.to_thread(process.extractOne, value, choices=role_names)
-
+    role_name = role_name[0]
     for role in roles.values():
         if role.name == role_name:
             return role

@@ -83,7 +83,7 @@ class BaseScreen:
             )
 
         # Get appropiate converter for return type
-        converter: lightbulb.BaseConverter = CONVERTER_TYPE_MAPPING[return_type](view.lctx)  # type: ignore
+        converter: lightbulb.BaseConverter = CONVERTER_TYPE_MAPPING[return_type](view.ctx)  # type: ignore
         flags = hikari.MessageFlag.EPHEMERAL if ephemeral else hikari.MessageFlag.NONE
 
         # If the select will result in a Bad Request or not

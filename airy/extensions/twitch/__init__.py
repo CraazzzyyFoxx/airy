@@ -24,11 +24,11 @@ async def tz_cmd(_: AirySlashContext):
     pass
 
 
-def load(bot: Airy) -> None:
-    bot.add_plugin(timezone)
-    pass
-
-
-def unload(bot: Airy) -> None:
-    bot.remove_plugin(timezone)
-    pass
+# def load(bot: Airy) -> None:
+#     bot.add_plugin(timezone)
+#     pass
+#
+#
+# def unload(bot: Airy) -> None:
+#     bot.remove_plugin(timezone)
+#     pass

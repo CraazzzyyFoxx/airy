@@ -24,8 +24,8 @@ class MusicPlugin(AiryPlugin):
 
         self.add_checks(lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.CONNECT),
                         lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.SPEAK),
-                        is_connected(),
-                        can_edit_player()
+                        is_connected,
+                        can_edit_player
                         )
 
     def init(self):

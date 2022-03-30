@@ -1,6 +1,6 @@
 from airy.core import Airy
 
-from .group_roles import group_role_plugin
+from .group import group_role_plugin
 
 
 def load(bot: Airy):

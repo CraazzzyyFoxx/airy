@@ -1,21 +1,23 @@
 import datetime as dt
+import logging
 import platform
 import time
 import typing as t
 from dataclasses import dataclass
 
 import hikari
+import lightbulb
 from lightbulb import commands, context, decorators, plugins
 from psutil import Process, virtual_memory
 from pygount import SourceAnalysis
 
 import airy
 from airy.utils import chron
-
-if t.TYPE_CHECKING:
-    from lightbulb.app import BotApp
+from airy.core import Airy
 
 plugin = plugins.Plugin("Meta")
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -118,11 +120,18 @@ async def cmd_stats(ctx: context.base.Context) -> None:
     )
 
 
-def load(bot: "BotApp") -> None:
+@plugin.listener(lightbulb.events.CommandInvocationEvent)
+async def command_invoke_listener(event: lightbulb.events.CommandInvocationEvent) -> None:
+    logger.info(
+        f"Command {event.command.name} was invoked by {event.context.author} in guild {event.context.guild_id}."
+    )
+
+
+def load(bot: Airy) -> None:
     if not bot.d.loc:
         bot.d.loc = CodeCounter().count()
     bot.add_plugin(plugin)
 
 
-def unload(bot: "BotApp") -> None:
+def unload(bot: Airy) -> None:
     bot.remove_plugin(plugin)

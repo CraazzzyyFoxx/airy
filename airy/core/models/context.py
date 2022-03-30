@@ -20,12 +20,12 @@ class ConfirmView(AuthorOnlyView):
 
     def __init__(
         self,
-        lctx: lightbulb.Context,
+        ctx: lightbulb.Context,
         timeout: int,
         confirm_resp: t.Optional[t.Dict[str, t.Any]] = None,
         cancel_resp: t.Optional[t.Dict[str, t.Any]] = None,
     ) -> None:
-        super().__init__(lctx, timeout=timeout)
+        super().__init__(ctx, timeout=timeout)
         self.confirm_resp = confirm_resp
         self.cancel_resp = cancel_resp
         self.value: t.Optional[bool] = None

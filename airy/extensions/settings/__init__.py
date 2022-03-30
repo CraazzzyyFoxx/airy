@@ -33,13 +33,13 @@ class SettingsView(models.AuthorOnlyView):
 
     def __init__(
         self,
-        lctx: lightbulb.Context,
+        ctx: lightbulb.Context,
         *,
         timeout: t.Optional[float] = 300,
         ephemeral: bool = False,
         autodefer: bool = False,
     ) -> None:
-        super().__init__(lctx, timeout=timeout, autodefer=autodefer)
+        super().__init__(ctx, timeout=timeout, autodefer=autodefer)
 
         # Last received context object
         self.last_ctx: t.Optional[miru.Context] = None
@@ -171,7 +171,7 @@ class SettingsView(models.AuthorOnlyView):
 
         self.add_buttons(buttons)
         if initial:
-            resp = await self.lctx.respond(embed=embed, components=self.build(), flags=self.flags)
+            resp = await self.ctx.respond(embed=embed, components=self.build(), flags=self.flags)
             message = await resp.message()
             self.start(message)
         else:

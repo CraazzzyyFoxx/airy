@@ -1,15 +1,20 @@
-from enum import IntEnum
+from __future__ import annotations
+
+import typing as t
 
 import hikari
+
+from hikari.internal.enums import Enum
 from tortoise import fields
 from tortoise.models import Model
 
-__all__ = ("ActionType", "ActionMenusModel", "ButtonModel", "DropdownModel", "DropdownEntriesModel")
+__all__ = ("ActionType", "ActionMenusModel", "ActionMenusButtonModel", "ActionMenusDropdownModel",
+           "ActionMenusDropdownEntriesModel")
 
 
-class ActionType(IntEnum):
-    MEMBER_ROLE = 1
-    MEMBER_PREFIX = 2
+class ActionType(int, Enum):
+    ROLE = 1
+    PREFIX = 2
 
 
 class ActionMenusModel(Model):
@@ -20,8 +25,8 @@ class ActionMenusModel(Model):
     channel_id = fields.BigIntField()
     message_id = fields.BigIntField()
 
-    buttons = fields.ReverseRelation['ActionMenusButtonModel']
-    dropdowns = fields.ReverseRelation['ActionMenusDropdownModel']
+    buttons: t.List["ActionMenusButtonModel"] = fields.ReverseRelation['ActionMenusButtonModel']
+    dropdowns: t.List["ActionMenusDropdownModel"] = fields.ReverseRelation['ActionMenusDropdownModel']
 
     class Meta:
         """Metaclass to set table name and description"""
@@ -30,17 +35,15 @@ class ActionMenusModel(Model):
         table_description = "Stores information about the action menus"
 
 
-class ButtonModel(Model):
+class ActionMenusButtonModel(Model):
     id = fields.IntField(pk=True)
-    interaction_id = fields.TextField()
 
-    action_type = fields.IntEnumField(ActionType, default=ActionType.MEMBER_ROLE)
+    action_type = fields.IntEnumField(ActionType, default=ActionType.ROLE)
     payload = fields.CharField(max_length=18)
 
     style = fields.IntEnumField(hikari.ButtonStyle, default=hikari.ButtonStyle.SECONDARY)
     label = fields.TextField(null=True)
     emoji = fields.TextField(null=True)
-    url = fields.TextField(null=True)
 
     menus = fields.ForeignKeyField(model_name='main.ActionMenusModel',
                                    related_name='buttons')
@@ -49,10 +52,10 @@ class ButtonModel(Model):
         """Metaclass to set table name and description"""
 
         table = "action_menus_button"
-        table_description = "Stores information about the action menus"
+        table_description = "Stores information about the action menus buttons"
 
 
-class DropdownModel(Model):
+class ActionMenusDropdownModel(Model):
     id = fields.IntField(pk=True)
     interaction_id = fields.CharField(max_length=100)
 
@@ -70,7 +73,7 @@ class DropdownModel(Model):
         table_description = "Stores information about the action menus"
 
 
-class DropdownEntriesModel(Model):
+class ActionMenusDropdownEntriesModel(Model):
     dropdown = fields.ForeignKeyField(model_name='main.DropdownModel',
                                       related_name='entries'
                                       )
