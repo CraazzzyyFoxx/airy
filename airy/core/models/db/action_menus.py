@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import typing as t
-
 import hikari
 
 from hikari.internal.enums import Enum
@@ -25,8 +23,8 @@ class ActionMenusModel(Model):
     channel_id = fields.BigIntField()
     message_id = fields.BigIntField()
 
-    buttons: t.List["ActionMenusButtonModel"] = fields.ReverseRelation['ActionMenusButtonModel']
-    dropdowns: t.List["ActionMenusDropdownModel"] = fields.ReverseRelation['ActionMenusDropdownModel']
+    buttons: fields.ReverseRelation['ActionMenusButtonModel']
+    dropdowns: fields.ReverseRelation['ActionMenusDropdownModel']
 
     class Meta:
         """Metaclass to set table name and description"""
@@ -64,7 +62,7 @@ class ActionMenusDropdownModel(Model):
 
     menus = fields.ForeignKeyField(model_name='main.ActionMenusModel',
                                    related_name='dropdowns')
-    entries = fields.ReverseRelation['DropdownEntriesModel']
+    entries: fields.ReverseRelation['DropdownEntriesModel']
 
     class Meta:
         """Metaclass to set table name and description"""
@@ -74,7 +72,7 @@ class ActionMenusDropdownModel(Model):
 
 
 class ActionMenusDropdownEntriesModel(Model):
-    dropdown = fields.ForeignKeyField(model_name='main.DropdownModel',
+    dropdown = fields.ForeignKeyField(model_name='main.ActionMenusDropdownModel',
                                       related_name='entries'
                                       )
     label = fields.TextField()

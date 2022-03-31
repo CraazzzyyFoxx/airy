@@ -44,7 +44,7 @@ class MenuView(MenuViewAuthorOnly):
             entries_description.append(f"**{index}.** {entry_role.mention} (ID: {entry_role.id})")
 
         embed.description = '\n'.join(entries_description)
-        return dict(embed=embed, components=self.build(), flags=self.flags)
+        return dict(embed=embed, components=self.build())
 
     async def send(self, ctx: t.Union[miru.ViewContext, miru.ModalContext]):
         kwargs = self.get_kwargs()
@@ -57,7 +57,7 @@ class MenuView(MenuViewAuthorOnly):
                       .prefetch_related("entries"))
 
         if not self.model:
-            await self.ctx.respond(embed=RespondEmbed.error("Provided group role missing"))
+            await self.ctx.respond(embed=RespondEmbed.error("The specified group role is missing"))
             return
         kwargs = self.get_kwargs()
         await self.ctx.interaction.create_initial_response(hikari.ResponseType.MESSAGE_CREATE, **kwargs)
@@ -70,7 +70,7 @@ ViewT = t.TypeVar("ViewT", bound=MenuView)
 
 class AddRoleButton(miru.Button[ViewT]):
     def __init__(self):
-        super().__init__(label="Role", style=hikari.ButtonStyle.SUCCESS, emoji=MenuEmojiEnum.ADD)
+        super().__init__(label="Role", style=hikari.ButtonStyle.SECONDARY, emoji=MenuEmojiEnum.ADD)
 
     async def callback(self, context: miru.ViewContext) -> None:
         modal = RoleModal()
@@ -96,10 +96,10 @@ class RemoveRoleButton(miru.Button):
         await modal.wait()
         role = await helpers.is_role(context, modal.data)
 
-        if role.id in [entry.role_id for entry in self.view.model.entries]:
+        if role and role.id in [entry.role_id for entry in self.view.model.entries]:
             if len(self.view.model.entries.related_objects) == 1:
                 await self.view.model.delete()
-                await context.respond(embed=RespondEmbed.success("Group role was deleted"))
+                await context.edit_response(embed=RespondEmbed.success("Group role was deleted"), components=[])
             else:
                 await EntryRoleGroupModel.filter(id_id=self.view.model.id, role_id=role.id).delete()
                 for entry in self.view.model.entries.related_objects:
@@ -111,19 +111,18 @@ class RemoveRoleButton(miru.Button):
 
 class DestroyButton(miru.Button[ViewT]):
     def __init__(self):
-        super().__init__(label="Destroy", style=hikari.ButtonStyle.PRIMARY, emoji=MenuEmojiEnum.TRASHCAN)
+        super().__init__(label="Destroy", style=hikari.ButtonStyle.DANGER, emoji=MenuEmojiEnum.TRASHCAN)
 
     async def callback(self, context: miru.ViewContext) -> None:
         await self.view.model.delete()
         await context.edit_response(embed=RespondEmbed.success("Group role was deleted"),
-                                    components=[],
-                                    flags=self.view.flags)
+                                    components=[])
         self.view.stop()
 
 
 class QuitButton(miru.Button[ViewT]):
     def __init__(self) -> None:
-        super().__init__(style=hikari.ButtonStyle.DANGER, label="Quit", emoji=MenuEmojiEnum.SAVE)
+        super().__init__(style=hikari.ButtonStyle.SECONDARY, label="Quit", emoji=MenuEmojiEnum.SAVE)
 
     async def callback(self, context: miru.ViewContext) -> None:
         for item in self.view.children:

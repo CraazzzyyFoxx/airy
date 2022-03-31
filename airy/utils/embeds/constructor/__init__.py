@@ -32,7 +32,7 @@ class DefaultEmbed(hikari.Embed):
         super().__init__()
         self.view = view
         if view.is_action_enabled_for(EmbedSettings.TITLE):
-            self.title = "itle"
+            self.title = "title"
         if view.is_action_enabled_for(EmbedSettings.DESCRIPTION):
             self.description = "Description"
         if view.is_action_enabled_for(EmbedSettings.AUTHOR):

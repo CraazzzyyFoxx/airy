@@ -27,7 +27,7 @@ class Airy(BotApp):
         super(Airy, self).__init__(
             bot_config.token,
             prefix="dev",
-            default_enabled_guilds=bot_config.dev_guilds,
+            default_enabled_guilds=bot_config.dev_guilds if bot_config.dev_guilds else (),
             intents=hikari.Intents.ALL,
             help_slash_command=False,
             cache_settings=hikari.CacheSettings(

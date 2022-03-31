@@ -6,3 +6,4 @@ from .reminder import ReminderModel
 from .group_role import *
 from .report import ReportModel
 from .blacklist import BlacklistModel
+from .buttonrole import ButtonRoleModel

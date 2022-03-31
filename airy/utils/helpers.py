@@ -331,7 +331,7 @@ def is_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
             return None
 
 
-async def is_role(ctx: t.Union[AirySlashContext, miru.ViewContext], value: t.Union[int, str]):
+async def is_role(ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext], value: t.Union[int, str]):
     """Checks that provided value is role by id and name"""
     roles = ctx.bot.cache.get_roles_view_for_guild(ctx.guild_id)
     if value.isdigit():

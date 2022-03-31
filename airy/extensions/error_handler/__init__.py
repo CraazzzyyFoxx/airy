@@ -161,6 +161,7 @@ async def application_error_handler(ctx: AiryContext, error: lightbulb.Lightbulb
 async def application_command_error_handler(event: lightbulb.CommandErrorEvent) -> None:
     assert isinstance(event.context, AirySlashContext)
     await application_error_handler(event.context, event.exception)
+    raise event.exception
 
 
 @ch.listener(lightbulb.UserCommandCompletionEvent)

@@ -102,9 +102,8 @@ group_role_plugin = GroupRolePlugin('GroupRole')
 
 @group_role_plugin.command()
 @lightbulb.add_checks(
-    lightbulb.checks.has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS)
+    lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
+    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
 )
 @lightbulb.command("grouprole", "grouprole")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
@@ -121,39 +120,20 @@ async def group_role_(_: AirySlashContext):
 async def group_role_create(ctx: AirySlashContext, group_role: hikari.Role, sub_role: hikari.Role, hierarchy: str):
     model = await GroupRoleModel.filter(guild_id=ctx.guild_id, role_id=group_role.id).first()
     if model:
-        return await ctx.respond(embed=RespondEmbed.error("The specified group role already exists"),
-                           flags=hikari.MessageFlag.EPHEMERAL)
+        return await ctx.respond(embed=RespondEmbed.error("The specified group role already exists",
+                                                          description="To edit an existing role use **/grouprole manage**"),
+                                 flags=hikari.MessageFlag.EPHEMERAL)
 
     model = GroupRoleModel(guild_id=ctx.guild_id,
                            role_id=group_role.id,
                            hierarchy=HierarchyRoles.try_value(hierarchy)
                            )
 
-    await model.save(force_update=True)
+    await model.save()
     await EntryRoleGroupModel.get_or_create(defaults={"role_id": ctx.options.sub_role.id}, id_id=model.id)
 
-    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> \n**{1}.** {sub_role.mention} (ID: {sub_role.id})'
+    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> **{1}.** {sub_role.mention} (ID: {sub_role.id})'
     await ctx.respond(embed=RespondEmbed.success('Successfully created.', description=description))
-
-
-@group_role_.child()
-@lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE, required=True)
-@lightbulb.command("delete", "Deletes Group Role.", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_delete(ctx: lightbulb.SlashContext, group_role: hikari.Role):
-    model = await GroupRoleModel.filter(guild_id=ctx.guild_id,
-                                        role_id=ctx.options.group_role.id).first()
-    await GroupRoleModel.filter(guild_id=ctx.guild_id,
-                                role_id=ctx.options.group_role.id).delete()
-
-    entries_description = []
-    for index, entry in enumerate(model.entries, 1):
-        entry_role = ctx.bot.cache.get_role(entry.role_id)
-        entries_description.append(f"**{index}.** {entry_role.mention} (ID: {entry_role.id})")
-
-    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> '
-    description += '\n'.join(entries_description)
-    await ctx.respond(embed=RespondEmbed.success('Successfully deleted.', description=description))
 
 
 @group_role_.child()

@@ -518,14 +518,9 @@ async def channel_cmd(_: lightbulb.Context):
 )
 @lightbulb.option("amount", "The number of messages to purge.", type=int, required=True, max_value=500)
 @lightbulb.command("purge", "Purge messages from this channel.", aliases=["clear", "prune"], pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand, lightbulb.PrefixSubCommand)
+@lightbulb.implements(lightbulb.SlashSubCommand)
 async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
     channel = ctx.channel_id
-
-    # If the command was invoked using the PrefixCommand, it will create a message
-    # before we purge the messages, so you want to delete this message first
-    if isinstance(ctx, lightbulb.PrefixContext):
-        await ctx.event.message.delete()
 
     msgs = await ctx.bot.rest.fetch_messages(channel).limit(amount)
     await ctx.bot.rest.delete_messages(channel, msgs)
@@ -541,7 +536,7 @@ async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
 @lightbulb.option("interval", "The interval amount (in seconds)", int, min_value=0, max_value=21600, required=False)
 @lightbulb.option("channel", "The channel you want to set", hikari.GuildChannel, required=True)
 @lightbulb.command("slowmode", "Set the slowmode interval for a channel", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand, lightbulb.PrefixSubCommand)
+@lightbulb.implements(lightbulb.SlashSubCommand)
 async def channel_slowmode(ctx: lightbulb.Context, channel, interval):
     time = interval or 0
     if time == 0:
