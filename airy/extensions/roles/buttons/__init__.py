@@ -13,7 +13,7 @@ from .menu import MenuView
 
 logger = logging.getLogger(__name__)
 
-role_buttons = AiryPlugin("Role-Buttons")
+role_buttons = AiryPlugin("Actionmenus")
 
 role_button_ratelimiter = RateLimiter(2, 1, BucketType.MEMBER, wait=False)
 
@@ -25,9 +25,6 @@ async def rolebutton_listener(plugin: AiryPlugin, event: miru.ComponentInteracti
     if not event.interaction.custom_id.startswith("ACM:"):
         return
 
-    assert isinstance(plugin.app, Airy)
-
-    entry_id = event.interaction.custom_id.split(":")[1]
     role_id = int(event.interaction.custom_id.split(":")[2])
 
     if not event.context.guild_id:
@@ -66,13 +63,13 @@ async def rolebutton_listener(plugin: AiryPlugin, event: miru.ComponentInteracti
         assert event.context.member is not None
 
         if role.id in event.context.member.role_ids:
-            await event.context.member.remove_role(role, reason=f"Removed by role-button (ID: {entry_id})")
+            await event.context.member.remove_role(role, reason=f"Removed by role-button")
             embed = RespondEmbed.success(title="Role removed",
                                          description=f"Removed role: {role.mention}", )
             await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
 
         else:
-            await event.context.member.add_role(role, reason=f"Granted by role-button (ID: {entry_id})")
+            await event.context.member.add_role(role, reason=f"Granted by role-button")
             embed = RespondEmbed.success(title="Role added",
                                          description=f"Added role: {role.mention}", )
             embed.set_footer(text="If you would like it removed, click the button again!")
@@ -160,8 +157,9 @@ async def rolebutton_create(ctx: AirySlashContext,
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def rolebutton_manage(ctx: AirySlashContext, message_link) -> None:
     message = await helpers.parse_message_link(ctx, message_link)
-    view = MenuView(ctx, message.channel_id, message.id)
-    await view.initial_send()
+    if message:
+        view = MenuView(ctx, message.channel_id, message.id)
+        await view.initial_send()
 
 # @rolebutton.child
 # @lightbulb.add_checks(has_permissions(hikari.Permissions.MANAGE_ROLES))

@@ -18,16 +18,6 @@ class BaseEmbed(hikari.Embed):
         self.timestamp = utcnow()
 
 
-class UserEmbed(BaseEmbed):
-    def __init__(self,
-                 *,
-                 title: typing.Any = None,
-                 description: typing.Any = None,
-                 url: typing.Optional[str] = None,
-                 ):
-        super().__init__(title=title, description=description, url=url)
-
-
 class RespondEmbed(BaseEmbed):
     def __init__(self,
                  *,

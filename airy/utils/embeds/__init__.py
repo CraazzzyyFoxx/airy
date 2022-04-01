@@ -1,2 +1,2 @@
-from .base import UserEmbed, BaseEmbed, RespondEmbed
+from .base import BaseEmbed, RespondEmbed
 from .constructor import EmbedConstructor, EmbedSettings
