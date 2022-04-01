@@ -52,6 +52,11 @@ class ActionMenusButtonModel(Model):
         table = "action_menus_button"
         table_description = "Stores information about the action menus buttons"
 
+    def display(self) -> str:
+        if self.action_type == ActionType.ROLE:
+            return f"{self.emoji if self.emoji else ''} {self.label} **-** <@&{self.payload}> (Role ID: {self.payload})"
+        return f"{self.emoji if self.emoji else ''} {self.label} **-** <{self.payload}"
+
 
 class ActionMenusDropdownModel(Model):
     id = fields.IntField(pk=True)
@@ -62,7 +67,7 @@ class ActionMenusDropdownModel(Model):
 
     menus = fields.ForeignKeyField(model_name='main.ActionMenusModel',
                                    related_name='dropdowns')
-    entries: fields.ReverseRelation['DropdownEntriesModel']
+    entries: fields.ReverseRelation['ActionMenusDropdownEntriesModel']
 
     class Meta:
         """Metaclass to set table name and description"""

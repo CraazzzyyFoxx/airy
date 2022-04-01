@@ -105,7 +105,7 @@ group_role_plugin = GroupRolePlugin('GroupRole')
     lightbulb.checks.has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES, hikari.Permissions.MODERATE_MEMBERS),
 )
-@lightbulb.command("grouprole", "grouprole")
+@lightbulb.command("rolegroup", "grouprole")
 @lightbulb.implements(lightbulb.SlashCommandGroup)
 async def group_role_(_: AirySlashContext):
     pass
@@ -153,7 +153,7 @@ async def group_role_list(ctx: AirySlashContext):
 
     models = await GroupRoleModel.filter(guild_id=ctx.guild_id).all().prefetch_related("entries")
     if len(models) == 0:
-        return await ctx.respond(embed=RespondEmbed.error("Group roles missing"))
+        return await ctx.respond(embed=RespondEmbed.error("Group roles are missing"))
     entries = []
     for model in models:
         entries_description = []

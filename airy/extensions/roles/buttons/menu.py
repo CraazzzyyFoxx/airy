@@ -44,7 +44,7 @@ class AddModal(miru.Modal):
         self.label = ctx.values.get(self.label_input) or '\u200b'
         self.style = button_styles.get(ctx.values.get(self.style_input).capitalize()) or hikari.ButtonStyle.SECONDARY
         emoji = ctx.values.get(self.emoji_input)
-        self.emoji = hikari.Emoji.parse(emoji) if emoji else hikari.UNDEFINED
+        self.emoji = hikari.Emoji.parse(emoji) if emoji else None
 
 
 class RemoveModal(miru.Modal):
@@ -84,15 +84,13 @@ class MenuView(MenuViewAuthorOnly):
         return [AddButtonButton(), RemoveButtonButton(), DestroyButton(), PreviewButton(), QuitButton(), SelectEmbed()]
 
     def get_kwargs(self):
-        embed = hikari.Embed(title="Action Menus",
+        embed = hikari.Embed(title="Button Roles",
                              color=ColorEnum.teal,
                              timestamp=utcnow())
         entries_description = []
 
-        for index, entry in enumerate(self.model.buttons, 1):
-            role = self.ctx.bot.cache.get_role(hikari.Snowflake(entry.payload))
-            entries_description.append(f"**{index}.** {entry.label if entry.label else 'Missing'} - {role.mention}"
-                                       f"(Role ID: {role.id})")
+        for index, button in enumerate(self.model.buttons, 1):
+            entries_description.append(f"**{index}.** {button.display()}")
 
         embed.description = '\n'.join(entries_description)
         return dict(embed=embed, components=self.build(), flags=self.flags)
@@ -128,7 +126,7 @@ class MenuView(MenuViewAuthorOnly):
             if len(self.model.buttons.related_objects) == 0:
                 await self.ctx.bot.rest.delete_message(self.channel_id, self.message_id)
                 await self.model.delete()
-                await self.last_ctx.edit_response(embed=RespondEmbed.success("Action Menus was deleted"))
+                await self.last_ctx.edit_response(embed=RespondEmbed.success("Button role was deleted"))
                 self.stop()
             else:
                 await self.ctx.bot.rest.edit_message(self.channel_id,
@@ -161,6 +159,14 @@ class AddButtonButton(miru.Button[ViewT]):
         await context.respond_with_modal(modal)
         await modal.wait()
         role = modal.role
+
+        if len(self.view.acm_view.children) == 25:
+            embed = RespondEmbed.error(
+                title="Too many buttons",
+                description="This message has too many buttons attached to it already, please choose a different message!"
+            )
+            await context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+            return
 
         if role and str(role.id) not in [entry.payload for entry in self.view.model.buttons]:
             channel_id = self.view.channel_id
@@ -219,7 +225,7 @@ class DestroyButton(miru.Button[ViewT]):
             pass
 
         await self.view.model.delete()
-        await context.edit_response(embed=RespondEmbed.success("Action Menus was deleted"),
+        await context.edit_response(embed=RespondEmbed.success("Button roles were deleted"),
                                     components=[],
                                     flags=self.view.flags)
         self.view.stop()
@@ -267,7 +273,7 @@ class TitleModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         title = ctx.values.get(self.title_input)
-        self.title_ = title if title else hikari.UNDEFINED
+        self.title_ = title if title else None
 
 
 class DescriptionModal(miru.Modal):
@@ -282,7 +288,7 @@ class DescriptionModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         description = ctx.values.get(self.description_input)
-        self.description = description if description else hikari.UNDEFINED
+        self.description = description if description else None
 
 
 class ColorModal(miru.Modal):
@@ -290,7 +296,7 @@ class ColorModal(miru.Modal):
         self.color_input = miru.TextInput(label="Color",
                                           placeholder="The color of the embed.", min_length=1)
 
-        super().__init__("Enter Role")
+        super().__init__("Color")
         self.color: t.Optional[hikari.Color] = None
         self.add_item(self.color_input)
 
@@ -309,7 +315,7 @@ class AuthorModal(miru.Modal):
                                                placeholder="An URL pointing to an image to use for the author's avatar.",
                                                max_length=100)
 
-        super().__init__("Enter Role")
+        super().__init__("Author")
         self.author_url: t.Optional[str] = None
         self.author: t.Optional[str] = None
         self.add_item(self.author_input)
@@ -319,7 +325,7 @@ class AuthorModal(miru.Modal):
         if helpers.is_url(ctx.values.get(self.author_url_input)):
             self.author_url = ctx.values.get(self.author_url_input)
         author = ctx.values.get(self.author_input)
-        self.author = author if author else hikari.UNDEFINED
+        self.author = author if author else None
 
 
 class FooterModal(miru.Modal):
@@ -332,7 +338,7 @@ class FooterModal(miru.Modal):
                                                placeholder="An url pointing to an image to use for the embed footer.",
                                                max_length=200)
 
-        super().__init__("Enter Role")
+        super().__init__("Footer")
         self.footer: t.Optional[str] = None
         self.footer_url: t.Optional[str] = None
         self.add_item(self.footer_input)
@@ -342,7 +348,7 @@ class FooterModal(miru.Modal):
         if helpers.is_url(ctx.values.get(self.footer_url_input)):
             self.footer_url = ctx.values.get(self.footer_url_input)
         author = ctx.values.get(self.footer_input)
-        self.footer = author if author else hikari.UNDEFINED
+        self.footer = author if author else None
 
 
 class ThumbnailModal(miru.Modal):
@@ -351,7 +357,7 @@ class ThumbnailModal(miru.Modal):
                                               placeholder="An url pointing to an image to use for the thumbnail.",
                                               max_length=200)
 
-        super().__init__("Enter Role")
+        super().__init__("Thumbnail")
         self.thumbnail: t.Optional[str] = None
         self.add_item(self.thumbnail_input)
 
@@ -359,7 +365,7 @@ class ThumbnailModal(miru.Modal):
         if helpers.is_url(ctx.values.get(self.thumbnail_input)):
             self.thumbnail = ctx.values.get(self.thumbnail_input)
         else:
-            self.thumbnail = hikari.UNDEFINED
+            self.thumbnail = None
 
 
 class SelectEmbed(miru.Select[ViewT]):
@@ -371,8 +377,8 @@ class SelectEmbed(miru.Select[ViewT]):
             miru.SelectOption(label="Author", value="__author",
                               description="The author of the embed. Appears above the title."),
             miru.SelectOption(label="Footer", value="__footer", description="The footer of the embed."),
-            miru.SelectOption(label="Thumbnail", value="__thumbnail",
-                              description="An url pointing to an image to use for the thumbnail.")
+            # miru.SelectOption(label="Thumbnail", value="__thumbnail",
+            #                   description="An url pointing to an image to use for the thumbnail.")
         ]
         super().__init__(options=self.options,
                          placeholder="Embed Settings",
@@ -405,10 +411,10 @@ class SelectEmbed(miru.Select[ViewT]):
             await context.respond_with_modal(modal)
             await modal.wait()
             self.view.acm_embed.set_footer(modal.footer, icon=modal.footer_url)
-        elif value == "__thumbnail":
-            modal = ThumbnailModal()
-            await context.respond_with_modal(modal)
-            await modal.wait()
-            self.view.acm_embed.set_thumbnail(modal.thumbnail)
+        # elif value == "__thumbnail":
+        #     modal = ThumbnailModal()
+        #     await context.respond_with_modal(modal)
+        #     await modal.wait()
+        #     self.view.acm_embed.set_thumbnail(modal.thumbnail)
 
         await self.view.send(modal.get_response_context())
