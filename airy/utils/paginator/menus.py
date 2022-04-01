@@ -177,7 +177,7 @@ class ListPageSource(PageSource):
             The data returned.
         """
         if self.per_page == 1:
-            return self.entries[page_number]
+            return [self.entries[page_number]]
         else:
             base = page_number * self.per_page
             return self.entries[base:base + self.per_page]

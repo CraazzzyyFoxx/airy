@@ -50,7 +50,6 @@ class GroupRolePlugin(AiryPlugin):
                        .filter(guild_id=event.guild_id)
                        .prefetch_related("entries")
                        )
-
         for role_model in role_models:
             entries = {r_m.role_id for r_m in role_model.entries}
             diff = entries - set(event.member.role_ids)
@@ -112,41 +111,42 @@ async def group_role_(_: AirySlashContext):
 
 
 @group_role_.child()
-@lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE)
-@lightbulb.option('sub_role', 'Sub role.', type=hikari.OptionType.ROLE)
+@lightbulb.option('role', 'Group role.', type=hikari.OptionType.ROLE)
+@lightbulb.option('subrole', 'Sub role.', type=hikari.OptionType.ROLE)
 @lightbulb.option('hierarchy', 'Sub role.', choices=HierarchyRoles.to_choices())
-@lightbulb.command("create", "Creates Group Role.", pass_options=True)
+@lightbulb.command("create", "Creates role with subrole and when a user has a subrole, he gets a group role",
+                   pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_create(ctx: AirySlashContext, group_role: hikari.Role, sub_role: hikari.Role, hierarchy: str):
-    model = await GroupRoleModel.filter(guild_id=ctx.guild_id, role_id=group_role.id).first()
+async def group_role_create(ctx: AirySlashContext, role: hikari.Role, subrole: hikari.Role, hierarchy: str):
+    model = await GroupRoleModel.filter(guild_id=ctx.guild_id, role_id=role.id).first()
     if model:
         return await ctx.respond(embed=RespondEmbed.error("The specified group role already exists",
-                                                          description="To edit an existing role use **/grouprole manage**"),
+                                                          description="To edit an existing role use **/rolegroup manage**"),
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
     model = GroupRoleModel(guild_id=ctx.guild_id,
-                           role_id=group_role.id,
+                           role_id=role.id,
                            hierarchy=HierarchyRoles.try_value(hierarchy)
                            )
 
     await model.save()
-    await EntryRoleGroupModel.get_or_create(defaults={"role_id": ctx.options.sub_role.id}, id_id=model.id)
+    await EntryRoleGroupModel.get_or_create(defaults={"role_id": subrole.id}, id_id=model.id)
 
-    description = f'{group_role.mention} (ID: {group_role.id}) \n>>> **{1}.** {sub_role.mention} (ID: {sub_role.id})'
+    description = f'{role.mention} (ID: {role.id}) \n>>> **{1}.** {subrole.mention} (ID: {subrole.id})'
     await ctx.respond(embed=RespondEmbed.success('Successfully created.', description=description))
 
 
 @group_role_.child()
-@lightbulb.option('group_role', 'Group role.', type=hikari.OptionType.ROLE)
-@lightbulb.command("manage", "Manages Group Role.", pass_options=True)
+@lightbulb.option('role', 'Group role.', type=hikari.OptionType.ROLE)
+@lightbulb.command("manage", "Manages the specified group role.", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
-async def group_role_manage(ctx: AirySlashContext, group_role: hikari.Role):
-    view = MenuView(ctx, group_role)
+async def group_role_manage(ctx: AirySlashContext, role: hikari.Role):
+    view = MenuView(ctx, role)
     await view.initial_send()
 
 
 @group_role_.child()
-@lightbulb.command("list", "Shows list of the group roles.")
+@lightbulb.command("list", "List all registered group role on this server.")
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def group_role_list(ctx: AirySlashContext):
     await ctx.respond(hikari.ResponseType.DEFERRED_MESSAGE_CREATE)

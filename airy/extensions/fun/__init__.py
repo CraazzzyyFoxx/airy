@@ -265,42 +265,42 @@ async def tictactoe(ctx: AirySlashContext, user: hikari.Member, size: t.Optional
         return
 
 
-@fun.command
-@lightbulb.option(
-    "show_global",
-    "To show the global avatar or not, if applicable",
-    bool,
-    required=False,
-)
-@lightbulb.option("user", "The user to show the avatar for.", hikari.Member, required=False)
-@lightbulb.command("avatar", "Displays a user's avatar for your viewing pleasure.", pass_options=True)
-@lightbulb.implements(lightbulb.SlashCommand)
-async def avatar(
-    ctx: AirySlashContext, user: t.Optional[hikari.Member] = None, show_global: t.Optional[bool] = None
-) -> None:
-    if user:
-        helpers.is_member(user)
-    member = user or ctx.member
-    assert member is not None
-
-    if show_global == True:
-        avatar_url = member.avatar_url
-    else:
-        avatar_url = member.display_avatar_url
-
-    embed = hikari.Embed(title=f"{member.display_name}'s avatar:", color=helpers.get_color(member))
-    embed.set_image(avatar_url)
-    await ctx.respond(embed=embed)
-
-
-@fun.command
-@lightbulb.command("showavatar", "Displays the target's avatar for your viewing pleasure.", pass_options=True)
-@lightbulb.implements(lightbulb.UserCommand)
-async def avatar_context(ctx: AirySlashContext, target: hikari.Member) -> None:
-    helpers.is_member(target)
-    embed = hikari.Embed(title=f"{target.display_name}'s avatar:", color=helpers.get_color(target))
-    embed.set_image(target.display_avatar_url)
-    await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+# @fun.command
+# @lightbulb.option(
+#     "show_global",
+#     "To show the global avatar or not, if applicable",
+#     bool,
+#     required=False,
+# )
+# @lightbulb.option("user", "The user to show the avatar for.", hikari.Member, required=False)
+# @lightbulb.command("avatar", "Displays a user's avatar for your viewing pleasure.", pass_options=True)
+# @lightbulb.implements(lightbulb.SlashCommand)
+# async def avatar(
+#     ctx: AirySlashContext, user: t.Optional[hikari.Member] = None, show_global: t.Optional[bool] = None
+# ) -> None:
+#     if user:
+#         helpers.is_member(user)
+#     member = user or ctx.member
+#     assert member is not None
+#
+#     if show_global == True:
+#         avatar_url = member.avatar_url
+#     else:
+#         avatar_url = member.display_avatar_url
+#
+#     embed = hikari.Embed(title=f"{member.display_name}'s avatar:", color=helpers.get_color(member))
+#     embed.set_image(avatar_url)
+#     await ctx.respond(embed=embed)
+#
+#
+# @fun.command
+# @lightbulb.command("showavatar", "Displays the target's avatar for your viewing pleasure.", pass_options=True)
+# @lightbulb.implements(lightbulb.UserCommand)
+# async def avatar_context(ctx: AirySlashContext, target: hikari.Member) -> None:
+#     helpers.is_member(target)
+#     embed = hikari.Embed(title=f"{target.display_name}'s avatar:", color=helpers.get_color(target))
+#     embed.set_image(target.display_avatar_url)
+#     await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
 
 
 @fun.command
@@ -344,37 +344,6 @@ async def eightball(ctx: AirySlashContext, question: str) -> None:
         color=ColorEnum.EMBED_BLUE,
     )
     await ctx.respond(embed=embed)
-
-
-@fun.command
-@lightbulb.option("query", "The query you want to search for on Wikipedia.")
-@lightbulb.command("wiki", "Search Wikipedia for articles!", auto_defer=True, pass_options=True)
-@lightbulb.implements(lightbulb.SlashCommand)
-async def wiki(ctx: AirySlashContext, query: str) -> None:
-    link = "https://en.wikipedia.org/w/api.php?action=opensearch&search={query}&limit=5"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(link.format(query=query.replace(" ", "+"))) as response:
-            results = await response.json()
-            results_text = results[1]
-            results_link = results[3]
-
-        if len(results_text) > 0:
-            desc = ""
-            for i, result in enumerate(results_text):
-                desc = f"{desc}[{result}]({results_link[i]})\n"
-            embed = hikari.Embed(
-                title=f"Wikipedia: {query}",
-                description=desc,
-                color=ColorEnum.default,
-            )
-        else:
-            embed = hikari.Embed(
-                title="❌ No results",
-                description="Could not find anything related to your query.",
-                color=ColorEnum.default,
-            )
-        await ctx.respond(embed=embed)
 
 
 def load(bot: Airy) -> None:

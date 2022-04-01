@@ -93,7 +93,7 @@ async def rolebutton(ctx: AirySlashContext) -> None:
 @lightbulb.add_checks(has_permissions(hikari.Permissions.MANAGE_ROLES))
 @lightbulb.option("buttonstyle", "The style of the button.", choices=["Blurple", "Grey", "Red", "Green"])
 @lightbulb.option("label", "The label that should appear on the button.", required=False)
-@lightbulb.option("emoji", "The emoji that should appear in the button.", type=hikari.Emoji)
+@lightbulb.option("emoji", "The emoji that should appear in the button.", type=hikari.Emoji, required=False)
 @lightbulb.option("role", "The role that should be handed out by the button.", type=hikari.Role)
 @lightbulb.option("channel", "The text channel, the message with rolebutton will be attached here.",
                   type=hikari.OptionType.CHANNEL,
@@ -102,15 +102,16 @@ async def rolebutton(ctx: AirySlashContext) -> None:
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def rolebutton_create(ctx: AirySlashContext,
                             buttonstyle: str,
-                            emoji: str,
                             role: hikari.Role,
                             channel: hikari.TextableChannel,
+                            emoji: str = None,
                             label: str = None) -> None:
     buttonstyle = buttonstyle or "Grey"
-    try:
-        emoji = hikari.Emoji.parse(emoji)
-    except ValueError:
-        emoji = None
+    if emoji:
+        try:
+            emoji = hikari.Emoji.parse(emoji)
+        except ValueError:
+            emoji = None
     style = button_styles[buttonstyle.capitalize()]
     view = miru.View()
     button = miru.Button(

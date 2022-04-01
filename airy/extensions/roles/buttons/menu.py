@@ -41,10 +41,14 @@ class AddModal(miru.Modal):
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         self.role = await helpers.is_role(ctx, ctx.values.get(self.role_input))
-        self.label = ctx.values.get(self.label_input) or '\u200b'
+        self.label = ctx.values.get(self.label_input)
         self.style = button_styles.get(ctx.values.get(self.style_input).capitalize()) or hikari.ButtonStyle.SECONDARY
         emoji = ctx.values.get(self.emoji_input)
-        self.emoji = hikari.Emoji.parse(emoji) if emoji else None
+        if emoji:
+            try:
+                self.emoji = hikari.Emoji.parse(emoji)
+            except ValueError:
+                self.emoji = None
 
 
 class RemoveModal(miru.Modal):
@@ -173,6 +177,7 @@ class AddButtonButton(miru.Button[ViewT]):
 
             entry_model = ActionMenusButtonModel(menus_id=self.view.model.id,
                                                  payload=str(role.id),
+                                                 label=modal.label,
                                                  style=modal.style,
                                                  action_type=ActionType.ROLE,
                                                  emoji=modal.emoji
