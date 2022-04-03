@@ -6,7 +6,9 @@ import hikari
 from tortoise.expressions import Q
 
 from airy.core import GuildModel, TimerModel, AirySlashContext
-from airy.utils import MuteEvent, human_timedelta, UserFriendlyTime, utcnow, format_relative, RespondEmbed
+from airy.core.scheduler.timers import MuteEvent
+from airy.utils import human_timedelta, UserFriendlyTime, utcnow, format_relative, RespondEmbed
+
 
 from .convertors import ActionReason
 

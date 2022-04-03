@@ -38,8 +38,11 @@ class Airy(BotApp, ABC):
                             | hikari.CacheComponents.MEMBERS
                             | hikari.CacheComponents.ROLES
                             | hikari.CacheComponents.INVITES
-                            | hikari.CacheComponents.VOICE_STATES),
+                            | hikari.CacheComponents.VOICE_STATES
+                            | hikari.CacheComponents.MESSAGES),
+                max_messages=1000,
             ),
+
         )
         self._started = asyncio.Event()
         self._user_id: t.Optional[hikari.Snowflake] = None
