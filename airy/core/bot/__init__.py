@@ -3,6 +3,7 @@ import logging
 import os
 import pathlib
 import typing as t
+from abc import ABC
 
 import aioredis
 import hikari
@@ -12,17 +13,17 @@ import miru
 from lightbulb.app import BotApp
 from tortoise import Tortoise
 
-from airy.config import tortoise_config, bot_config
+from airy.config import tortoise_config, bot_config, BotConfig
 from ..models.context import *
-from ..models.db import GuildModel
 
 from airy.utils.time import utcnow, format_dt
 from ...utils import db_backup
+from ..log import log_config
 
 log = logging.getLogger(__name__)
 
 
-class Airy(BotApp):
+class Airy(BotApp, ABC):
     def __init__(self):
         super(Airy, self).__init__(
             bot_config.token,
@@ -30,32 +31,31 @@ class Airy(BotApp):
             default_enabled_guilds=bot_config.dev_guilds if bot_config.dev_guilds else (),
             intents=hikari.Intents.ALL,
             help_slash_command=False,
+            logs=log_config,
             cache_settings=hikari.CacheSettings(
-                components=hikari.CacheComponents.ALL,
-                max_dm_channel_ids=300
-
+                components=(hikari.CacheComponents.GUILDS
+                            | hikari.CacheComponents.GUILD_CHANNELS
+                            | hikari.CacheComponents.MEMBERS
+                            | hikari.CacheComponents.ROLES
+                            | hikari.CacheComponents.INVITES
+                            | hikari.CacheComponents.VOICE_STATES),
             ),
-            logs={
-                "version": 1,
-                "incremental": True,
-                "loggers": {
-                    "lightbulb": {"level": "INFO"},
-                    "hikari.gateway": {"level": "INFO"},
-                    "hikari.ratelimits": {"level": "INFO"},
-                    "lavacord": {"level": "INFO"},
-                    "airy": {"level": "INFO"}
-                },
-            }
         )
         self._started = asyncio.Event()
         self._user_id: t.Optional[hikari.Snowflake] = None
         self._is_started = False
         self.skip_first_db_backup = True  # Set to False to backup DB on bot startup too
+        self._config = bot_config
+
         self.redis = aioredis.from_url(url="redis://localhost:6379")
+
         self.load_extensions_from("./airy/extensions")
         self.create_subscriptions()
-
         miru.load(self)
+
+    @property
+    def config(self) -> BotConfig:
+        return self._config
 
     @property
     def user_id(self) -> hikari.Snowflake:
@@ -88,10 +88,9 @@ class Airy(BotApp):
         self.subscribe(hikari.GuildAvailableEvent, self.on_guild_available)
         self.subscribe(lightbulb.LightbulbStartedEvent, self.on_lightbulb_started)
         self.subscribe(hikari.StoppingEvent, self.on_stopping)
-        self.subscribe(hikari.GuildJoinEvent, self.on_guild_join)
-        self.subscribe(hikari.GuildLeaveEvent, self.on_guild_leave)
 
-    async def connect_db(self) -> None:
+    @staticmethod
+    async def connect_db() -> None:
         log.info("Connecting to Database...")
         await Tortoise.init(config=tortoise_config)
         await Tortoise.generate_schemas(safe=True)
@@ -194,40 +193,6 @@ class Airy(BotApp):
                 embed.set_thumbnail(user.avatar_url if user else None)
                 await event.message.respond(embed=embed)
                 return
-
-    async def on_guild_join(self, event: hikari.GuildJoinEvent) -> None:
-        """Guild join behaviour"""
-        await GuildModel.update_or_create({}, guild_id=event.guild_id)
-
-        if event.guild.system_channel_id is None:
-            return
-
-        me = event.guild.get_my_member()
-        channel = event.guild.get_channel(event.guild.system_channel_id)
-
-        assert me is not None
-        assert isinstance(channel, hikari.TextableGuildChannel)
-
-        if not channel or not (hikari.Permissions.SEND_MESSAGES & lightbulb.utils.permissions_in(channel, me)):
-            return
-
-        try:
-            embed = hikari.Embed(
-                title="Beep Boop!",
-                description="""I have been summoned to this server. 
-                Type `/` to see what I can do!\n\nIf you have `Manage Server` permissions, you may configure the bot via `/settings`!""",
-                color=0xFEC01D,
-            )
-            embed.set_thumbnail(me.avatar_url)
-            await channel.send(embed=embed)
-        except hikari.ForbiddenError:
-            pass
-        logging.info(f"Bot has been added to new guild: {event.guild.name} ({event.guild_id}).")
-
-    async def on_guild_leave(self, event: hikari.GuildLeaveEvent) -> None:
-        """Guild removal behaviour"""
-        await GuildModel.filter(guild_id=event.guild_id).delete()
-        logging.info(f"Bot has been removed from guild {event.guild_id}, correlating data erased.")
 
     async def backup_db(self) -> None:
         if self.skip_first_db_backup:

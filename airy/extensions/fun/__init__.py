@@ -303,47 +303,47 @@ async def tictactoe(ctx: AirySlashContext, user: hikari.Member, size: t.Optional
 #     await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
 
 
-@fun.command
-@lightbulb.option(
-    "amount", "The amount of dice to roll. 1 by default.", required=False, type=int, min_value=1, max_value=20
-)
-@lightbulb.option(
-    "sides",
-    "The amount of sides a single die should have. 6 by default.",
-    required=False,
-    type=int,
-    min_value=6,
-    max_value=100,
-)
-@lightbulb.command("dice", "Roll the dice!", pass_options=True, auto_defer=True)
-@lightbulb.implements(lightbulb.SlashCommand)
-async def dice(ctx: AirySlashContext, sides: t.Optional[int] = None, amount: t.Optional[int] = None) -> None:
-    amount = amount or 1
-    sides = sides or 6
-
-    calc = " ".join([f"`[{i+1}: {random.randint(1, sides)}]`" for i in range(0, amount)])
-
-    embed = hikari.Embed(
-        title=f"🎲 Rolled the {'die' if amount == 1 else 'dice'}!",
-        description=f"**Results (`{amount}d{sides}`):** {calc}",
-        color=ColorEnum.EMBED_BLUE,
-    )
-    await ctx.respond(embed=embed)
-
-
-@fun.command
-@lightbulb.option("question", "The question you want to ask of the mighty 8ball.")
-@lightbulb.command("8ball", "Ask a question, and the answers shall reveal themselves.", pass_options=True)
-@lightbulb.implements(lightbulb.SlashCommand)
-async def eightball(ctx: AirySlashContext, question: str) -> None:
-    ball_path = Path(airy.ROOT_DIR, "etc", "text", "8ball.txt")
-    answers = open(ball_path, "r").readlines()
-    embed = hikari.Embed(
-        title=f"🎱 {question}",
-        description=f"{random.choice(answers)}",
-        color=ColorEnum.EMBED_BLUE,
-    )
-    await ctx.respond(embed=embed)
+# @fun.command
+# @lightbulb.option(
+#     "amount", "The amount of dice to roll. 1 by default.", required=False, type=int, min_value=1, max_value=20
+# )
+# @lightbulb.option(
+#     "sides",
+#     "The amount of sides a single die should have. 6 by default.",
+#     required=False,
+#     type=int,
+#     min_value=6,
+#     max_value=100,
+# )
+# @lightbulb.command("dice", "Roll the dice!", pass_options=True, auto_defer=True)
+# @lightbulb.implements(lightbulb.SlashCommand)
+# async def dice(ctx: AirySlashContext, sides: t.Optional[int] = None, amount: t.Optional[int] = None) -> None:
+#     amount = amount or 1
+#     sides = sides or 6
+#
+#     calc = " ".join([f"`[{i+1}: {random.randint(1, sides)}]`" for i in range(0, amount)])
+#
+#     embed = hikari.Embed(
+#         title=f"🎲 Rolled the {'die' if amount == 1 else 'dice'}!",
+#         description=f"**Results (`{amount}d{sides}`):** {calc}",
+#         color=ColorEnum.EMBED_BLUE,
+#     )
+#     await ctx.respond(embed=embed)
+#
+#
+# @fun.command
+# @lightbulb.option("question", "The question you want to ask of the mighty 8ball.")
+# @lightbulb.command("8ball", "Ask a question, and the answers shall reveal themselves.", pass_options=True)
+# @lightbulb.implements(lightbulb.SlashCommand)
+# async def eightball(ctx: AirySlashContext, question: str) -> None:
+#     ball_path = Path(airy.ROOT_DIR, "etc", "text", "8ball.txt")
+#     answers = open(ball_path, "r").readlines()
+#     embed = hikari.Embed(
+#         title=f"🎱 {question}",
+#         description=f"{random.choice(answers)}",
+#         color=ColorEnum.EMBED_BLUE,
+#     )
+#     await ctx.respond(embed=embed)
 
 
 def load(bot: Airy) -> None:

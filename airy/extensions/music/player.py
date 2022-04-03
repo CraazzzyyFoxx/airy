@@ -44,20 +44,18 @@ class PlayerMenu(miru.View):
         try:
             status = await _can_edit_player_buttons(ctx)
             return status
-        except Exception as error:
-            if isinstance(error, NoVoiceChannel):
-                embed = RespondEmbed.error(title="You not in voice channel",
-                                           description=f"You must be in the same channel with bot")
-                await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
-                return False
-
-            if isinstance(error, MissingPermissionsToEditPlayer):
-                embed = RespondEmbed.error(title="You don't have permissions to interact with player ",
-                                           description="This can be done by Administrators and people "
-                                                       "whose track is currently playing. \n"
-                                                       "But this does not apply to the `play` command.")
-                await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
-                return False
+        except NoVoiceChannel:
+            embed = RespondEmbed.error(title="You not in voice channel",
+                                       description=f"You must be in the same channel with bot")
+            await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+            return False
+        except MissingPermissionsToEditPlayer:
+            embed = RespondEmbed.error(title="You don't have permissions to interact with player ",
+                                       description="This can be done by Administrators and people "
+                                                   "whose track is currently playing. \n"
+                                                   "But this does not apply to the `play` command.")
+            await ctx.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
+            return False
 
     @staticmethod
     def get_default_buttons() -> t.List[PlayerButton[PlayerMenuT]]:

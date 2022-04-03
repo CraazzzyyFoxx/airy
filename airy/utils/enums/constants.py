@@ -41,12 +41,14 @@ class RespondEmojiEnum(str, Enum):
     SUCCESS = "<:greenTick:882620180365185086>"
     ERROR = "<:redTick:882620191178129479>"
     NONE = "<:greyTick:882620201764524122>"
+    COOLDOWN = "<:timer:959571499918983198>"
 
 
 class RespondIconsEnum(str, Enum):
     SUCCESS = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854231283929098"))
     ERROR = str(hikari.files.URL("https://cdn.discordapp.com/emojis/956854215475597362"))
     NONE = str(hikari.files.URL("https://cdn.discordapp.com/emojis/882620201764524122"))
+    COOLDOWN = str(hikari.files.URL("https://cdn.discordapp.com/emojis/959571499918983198"))
 
 
 class MenuEmojiEnum(str, Enum):

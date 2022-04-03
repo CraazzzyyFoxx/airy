@@ -36,6 +36,24 @@ class GroupRolePlugin(AiryPlugin):
 
     def init(self):
         self.bot.subscribe(hikari.MemberUpdateEvent, self.on_member_update)
+        self.bot.subscribe(hikari.RoleDeleteEvent, self.on_role_delete)
+
+    @staticmethod
+    async def on_role_delete(event: hikari.RoleDeleteEvent):
+        models = await GroupRoleModel.filter(guild_id=event.guild_id).all().prefetch_related("entries")
+
+        for model in models:
+            if model.role_id == event.role_id:
+                await model.delete()
+                return
+
+            for entry in model.entries:
+                if entry.role_id == event.role_id:
+                    if len(model.entries) == 1:
+                        await model.delete()
+                        return
+                    await entry.delete()
+                    return
 
     async def on_member_update(self, event: hikari.MemberUpdateEvent):
         if event.member is None or event.old_member is None or len(event.member.role_ids) < 1:

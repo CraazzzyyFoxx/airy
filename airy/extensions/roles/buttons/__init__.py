@@ -18,6 +18,26 @@ role_buttons = AiryPlugin("RoleButtons")
 role_button_ratelimiter = RateLimiter(2, 1, BucketType.MEMBER, wait=False)
 
 
+@role_buttons.listener(hikari.RoleDeleteEvent, bind=True)
+async def rolebutton_role_delete_listener(plugin: AiryPlugin, event: hikari.RoleDeleteEvent) -> None:
+    models = await ActionMenusModel.filter(guild_id=event.guild_id).all().prefetch_related("buttons")
+    for model in models:
+        for button in model.buttons:
+            if button.payload == str(event.role_id):
+                if len(model.buttons) == 1:
+                    try:
+                        await event.app.rest.delete_message(channel=model.channel_id, message=model.message_id)
+                    except (hikari.NotFoundError, hikari.ForbiddenError):
+                        pass
+                    except hikari.HTTPError:
+                        pass
+                    await model.delete()
+                    return
+                else:
+                    await button.delete()
+                    return
+
+
 @role_buttons.listener(miru.ComponentInteractionCreateEvent, bind=True)
 async def rolebutton_listener(plugin: AiryPlugin, event: miru.ComponentInteractionCreateEvent) -> None:
     """Statelessly listen for rolebutton interactions"""
@@ -138,7 +158,7 @@ async def rolebutton_create(ctx: AirySlashContext,
     await ActionMenusButtonModel.create(menus_id=model.id,
                                         payload=str(role.id),
                                         style=style,
-                                        label=label,
+                                        label=label if label else "",
                                         emoji=emoji)
 
     embed = RespondEmbed.success(

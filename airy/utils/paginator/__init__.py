@@ -57,6 +57,10 @@ class AiryPages(miru.View):
         return self._ephemeral
 
     @property
+    def inter(self) -> hikari.MessageResponseMixin[Any]:
+        return self._inter
+
+    @property
     def get_default_buttons(self: AiryPagesT) -> List[NavButton[AiryPagesT]]:
         """Returns the default set of buttons.
 

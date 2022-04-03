@@ -76,7 +76,7 @@ class AddRoleButton(miru.Button[ViewT]):
         modal = RoleModal()
         await context.respond_with_modal(modal)
         await modal.wait()
-        role = await helpers.is_role(context, modal.data)
+        role = await helpers.parse_role(context, modal.data)
 
         if role and role.id not in [entry.role_id for entry in self.view.model.entries]:
             entry_model = EntryRoleGroupModel(id_id=self.view.model.id, role_id=role.id)
@@ -94,7 +94,7 @@ class RemoveRoleButton(miru.Button):
         modal = RoleModal()
         await context.respond_with_modal(modal)
         await modal.wait()
-        role = await helpers.is_role(context, modal.data)
+        role = await helpers.parse_role(context, modal.data)
 
         if role and role.id in [entry.role_id for entry in self.view.model.entries]:
             if len(self.view.model.entries.related_objects) == 1:

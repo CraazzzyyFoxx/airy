@@ -15,11 +15,11 @@ from tortoise import exceptions
 from tortoise.expressions import Q
 
 from airy.utils import time, formats
-from airy.core import ReminderModel, AiryPlugin
+from airy.core import TimerModel, AiryPlugin
 from airy.utils.time import utcnow
 
 from airy.core import Airy, AirySlashContext
-from airy.utils.timers import BaseTimerEvent, ReminderEvent, timers
+from airy.core.scheduler.timers import BaseTimerEvent, ReminderEvent, timers
 from airy.utils import ColorEnum
 
 
@@ -52,11 +52,11 @@ class ReminderPlugin(AiryPlugin):
             self.task = self.bot.create_task(self.dispatch_timers())
 
     async def call_timer(self, timer: BaseTimerEvent):
-        await ReminderModel.filter(id=timer.id).delete()
+        await TimerModel.filter(id=timer.id).delete()
         await self.bot.dispatch(timer)
 
     async def get_active_timer(self, days=7):
-        record = await ReminderModel.filter(expires__lt=utcnow() + datetime.timedelta(days=days)).first()
+        record = await TimerModel.filter(expires__lt=utcnow() + datetime.timedelta(days=days)).first()
 
         if record is None:
             return
@@ -97,14 +97,14 @@ class ReminderPlugin(AiryPlugin):
         delta = (when - now).total_seconds()
 
         if delta <= 120:
-            # a shortcut for small timers
+            # a shortcut for small scheduler
             self.bot.create_task(self.short_timer_optimisation(delta, timer))
             return timer
 
-        row = await ReminderModel.create(event=timer.event,
-                                         extra={'args': args, 'kwargs': kwargs},
-                                         expires=when,
-                                         now=utcnow())
+        row = await TimerModel.create(event=timer.event,
+                                      extra={'args': args, 'kwargs': kwargs},
+                                      expires=when,
+                                      now=utcnow())
 
         timer.id = row.id
 
@@ -166,7 +166,7 @@ async def reminder_create(ctx: lightbulb.SlashContext):
 async def reminder_list(ctx: lightbulb.SlashContext):
     """Shows the 10 latest currently running reminders."""
 
-    records = (await ReminderModel
+    records = (await TimerModel
                .filter(Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]}))
                .order_by('expires')
                .limit(10))
@@ -199,7 +199,7 @@ async def reminder_delete(ctx: lightbulb.SlashContext):
     You must own the reminder to delete it, obviously.
     """
 
-    status = (await ReminderModel
+    status = (await TimerModel
               .filter(Q(id=ctx.options.id) & Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]}))
               .delete())
 
@@ -222,14 +222,14 @@ async def reminder_clear(ctx: AirySlashContext):
     """Clears all reminders you have set."""
 
     # For UX purposes this has to be two queries.
-    total = await ReminderModel.filter(Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]})).count()
+    total = await TimerModel.filter(Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]})).count()
 
     if total == 0:
         return await ctx.respond('You do not have any reminders to delete.')
 
     status = await ctx.confirm(f'Are you sure you want to delete {formats.Plural(total):reminder}?')
     if status:
-        await ReminderModel.filter(Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]})).delete()
+        await TimerModel.filter(Q(event='reminder') & Q(extra__contains={"args": [ctx.author.id]})).delete()
 
         # Check if the current timer is the one being cleared and cancel it if so
         if plugin.current_timer and plugin.current_timer.author_id == ctx.author.id:

@@ -4,7 +4,7 @@ from tortoise.models import Model
 from airy.utils.time import utcnow
 
 
-class ReminderModel(Model):
+class TimerModel(Model):
     id = fields.IntField(pk=True)
     expires = fields.DatetimeField(index=True)
     created = fields.DatetimeField(default=utcnow())
@@ -14,5 +14,5 @@ class ReminderModel(Model):
     class Meta:
         """Metaclass to set table name and description"""
 
-        table = "reminders"
-        table_description = "Stores information about the reminder"
+        table = "timer"
+        table_description = "Stores information about the timer"

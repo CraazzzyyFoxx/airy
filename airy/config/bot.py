@@ -8,6 +8,7 @@ class BotConfig(BaseSettings):
     dev_guilds: t.List[int]
     errors_trace_channel: int
     info_channel: int
+    stats_channel: int
 
     class Config:
         env_file = ".env"

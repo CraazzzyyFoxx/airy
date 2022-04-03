@@ -10,7 +10,7 @@ if t.TYPE_CHECKING:
 
 class Cache:
     def __init__(self):
-        self.bot: Airy = None
+        self.bot: t.Optional[Airy] = None
         self._cache: t.Dict[hikari.Snowflake, t.Dict[hikari.Snowflake, VoiceCategory]] = dict()
 
     def init(self, bot: Airy):

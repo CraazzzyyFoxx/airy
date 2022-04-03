@@ -70,6 +70,8 @@ class NavButton(Button[AiryPagesT]):
         pass
 
 
+# TODO: Add Custom Emojis for navigator buttons
+
 class NextButton(NavButton[AiryPagesT]):
     """
     A built-in NavButton to jump to the next page.
@@ -234,15 +236,15 @@ class StopButton(NavButton[AiryPagesT]):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji, row=row)
 
     async def callback(self, context: ViewContext) -> None:
-        if not self.view.message and not self.view._inter:
+        if not self.view.message and not self.view.inter:
             return
 
         for button in self.view.children:
             assert isinstance(button, NavButton)
             button.disabled = True
 
-        if self.view._inter and self.view.ephemeral:
-            await self.view._inter.edit_initial_response(components=self.view.build())
+        if self.view.inter and self.view.ephemeral:
+            await self.view.inter.edit_initial_response(components=self.view.build())
         elif self.view.message:
             await self.view.message.edit(components=self.view.build())
         self.view.stop()

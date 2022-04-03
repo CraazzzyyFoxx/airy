@@ -28,7 +28,9 @@ class AddModal(miru.Modal):
         self.style_input = miru.TextInput(label="Button style",
                                           placeholder="The style of the button. "
                                                       "It's can be Blurple, Grey, Red, Green",
-                                          style=hikari.TextInputStyle.PARAGRAPH)
+                                          style=hikari.TextInputStyle.PARAGRAPH,
+                                          min_length=1,
+                                          max_length=7)
         self.emoji_input = miru.TextInput(label="Emoji",
                                           placeholder="The emoji of the button. "
                                                       "It's can be :star: or <:spotify:908292227657240578>",
@@ -40,7 +42,7 @@ class AddModal(miru.Modal):
         self.add_item(self.emoji_input)
 
     async def callback(self, ctx: miru.ModalContext) -> None:
-        self.role = await helpers.is_role(ctx, ctx.values.get(self.role_input))
+        self.role = await helpers.parse_role(ctx, ctx.values.get(self.role_input))
         self.label = ctx.values.get(self.label_input)
         self.style = button_styles.get(ctx.values.get(self.style_input).capitalize()) or hikari.ButtonStyle.SECONDARY
         emoji = ctx.values.get(self.emoji_input)
@@ -60,7 +62,7 @@ class RemoveModal(miru.Modal):
         self.add_item(self.role_input)
 
     async def callback(self, ctx: miru.ModalContext) -> None:
-        self.role = await helpers.is_role(ctx, ctx.values.get(self.role_input))
+        self.role = await helpers.parse_role(ctx, ctx.values.get(self.role_input))
 
 
 class MenuView(MenuViewAuthorOnly):
@@ -282,14 +284,32 @@ class TitleModal(miru.Modal):
 
 
 class DescriptionModal(miru.Modal):
-    def __init__(self) -> None:
+    def __init__(self, ctx: miru.ViewContext, model: ActionMenusModel) -> None:
+        emojis = []
+        roles = []
+        for button in model.buttons:
+            if button.emoji:
+                emojis.append(f"{button.emoji}")
+            role: hikari.Role = ctx.bot.cache.get_role(button.payload)
+            roles.append(f"@{role.name} <@&{button.payload}>")
+
         self.description_input = miru.TextInput(label="Description",
                                                 placeholder="The description of the embed.", max_length=4000,
                                                 style=hikari.TextInputStyle.PARAGRAPH
                                                 )
+        self.description_roles = miru.TextInput(label="Roles",
+                                                value="\n".join(roles), max_length=4000,
+                                                style=hikari.TextInputStyle.PARAGRAPH
+                                                )
+        self.description_emojis = miru.TextInput(label="Emojis",
+                                                 value="\n".join(emojis), max_length=4000,
+                                                 style=hikari.TextInputStyle.PARAGRAPH
+                                                 )
         super().__init__("Description")
         self.description: t.Optional[str] = None
         self.add_item(self.description_input)
+        self.add_item(self.description_emojis)
+        self.add_item(self.description_roles)
 
     async def callback(self, ctx: miru.ModalContext) -> None:
         description = ctx.values.get(self.description_input)
@@ -306,7 +326,7 @@ class ColorModal(miru.Modal):
         self.add_item(self.color_input)
 
     async def callback(self, ctx: miru.ModalContext) -> None:
-        self.color = helpers.is_color(ctx.values.get(self.color_input))
+        self.color = helpers.parse_color(ctx.values.get(self.color_input))
 
 
 class AuthorModal(miru.Modal):
@@ -397,7 +417,7 @@ class SelectEmbed(miru.Select[ViewT]):
             await modal.wait()
             self.view.acm_embed.title = modal.title_
         elif value == "__description":
-            modal = DescriptionModal()
+            modal = DescriptionModal(context, self.view.model)
             await context.respond_with_modal(modal)
             await modal.wait()
             self.view.acm_embed.description = modal.description

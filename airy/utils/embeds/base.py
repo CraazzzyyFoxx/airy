@@ -46,5 +46,5 @@ class RespondEmbed(BaseEmbed):
     def cooldown(cls, title: typing.Any = None, description: typing.Any = None):
         emb = cls(description=description,
                   color=ColorEnum.EMBED_BLUE)
-        emb.set_author(icon="🕘", name=title)
+        emb.set_author(icon=RespondIconsEnum.COOLDOWN, name=title)
         return emb

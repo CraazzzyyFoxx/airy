@@ -312,7 +312,7 @@ def format_reason(
     return reason
 
 
-def is_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
+def parse_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
     if isinstance(value, int) and (0 <= value <= 16777215):
         return hikari.Color.from_int(value)
 
@@ -331,7 +331,7 @@ def is_color(value: t.Union[int, str]) -> t.Optional[hikari.Color]:
             return None
 
 
-async def is_role(ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext], value: t.Union[int, str]):
+async def parse_role(ctx: t.Union[AirySlashContext, miru.ViewContext, miru.ModalContext], value: t.Union[int, str]):
     """Checks that provided value is role by id and name"""
     roles = ctx.bot.cache.get_roles_view_for_guild(ctx.guild_id)
     if value.isdigit():

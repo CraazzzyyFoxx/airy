@@ -3,14 +3,12 @@ import datetime
 import lightbulb
 import hikari
 
-from lightbulb.utils import pag, nav
 from tortoise.expressions import Q
 
-from airy.extensions.moderation.convertors import ActionReason
-from airy import utils
-from airy.utils.timers import MuteEvent
-from airy.core.models import GuildModel, ReminderModel
-from airy.core import AirySlashContext
+from airy.core import GuildModel, TimerModel, AirySlashContext
+from airy.utils import MuteEvent, human_timedelta, UserFriendlyTime, utcnow, format_relative, RespondEmbed
+
+from .convertors import ActionReason
 
 mod_plugin = lightbulb.Plugin("Moderation")
 
@@ -97,88 +95,6 @@ async def member_cmd(_: AirySlashContext):
 
 @member_cmd.child()
 @lightbulb.add_checks(
-    lightbulb.checks.has_guild_permissions(hikari.Permissions.BAN_MEMBERS),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.BAN_MEMBERS)
-)
-@lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
-@lightbulb.option("reason", "the reason for banning the member", str, required=False,
-                  modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
-@lightbulb.option("delete_message",
-                  "Delete the messages after the ban? (up to 7 days, leave empty or set to 0 to not delete)", int,
-                  min_value=0, max_value=7, default=0, required=False)
-@lightbulb.option("user", "the user you want to ban", hikari.User, required=True)
-@lightbulb.command("ban", "ban a member", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def member_ban(ctx: AirySlashContext, user: hikari.User, delete_message: int, reason: str):
-    res = reason or f"'No Reason Provided.' By {ctx.author.username}"
-    delete = delete_message or 0
-    await ctx.respond(f"Banning **{user.username}**")
-    await ctx.bot.rest.ban_member(user=user, guild=ctx.get_guild(), reason=res, delete_message_days=delete)
-    await ctx.edit_last_response(f"Successfully banned `{user}` for `{res}`!")
-
-
-@member_cmd.child()
-@lightbulb.add_checks(
-    lightbulb.checks.has_guild_permissions(hikari.Permissions.BAN_MEMBERS),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.BAN_MEMBERS)
-)
-@lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
-@lightbulb.option("reason", "the reason for unbanning the member", str, required=False,
-                  modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
-@lightbulb.option("user", "the user you want to unban (Please use their user ID)", hikari.Snowflake, required=True)
-@lightbulb.command("unban", "unban a member", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def member_unban(ctx: AirySlashContext, user, reason):
-    res = reason or f"'No Reason Provided.' By {ctx.author.username}"
-    await ctx.respond(f"Unbanning the user ID of **{user}**")
-    await ctx.bot.rest.unban_member(user=user, guild=ctx.get_guild(), reason=res)
-    await ctx.edit_last_response(f"Successfully unbanned the ID of `{user}` for `{res}`!")
-
-
-@member_cmd.child()
-@lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
-@lightbulb.command("banlist", "see the list of banned members in this server", auto_defer=True, pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def member_banlist(ctx: AirySlashContext):
-    bans = await ctx.bot.rest.fetch_bans(ctx.get_guild())
-
-    if not bans:
-        return ctx.respond(embed=utils.RespondEmbed.error("No Bans"))
-
-    lst = pag.EmbedPaginator()
-
-    @lst.embed_factory()
-    def build_embed(_, page_content):
-        emb = hikari.Embed(title="List of Banned Members", description=page_content)
-        emb.set_footer(f"{len(bans)} Members in total.")
-        return emb
-
-    for users in bans:
-        lst.add_line(str(users.user))
-    navigator = nav.ButtonNavigator(lst.build_pages())
-    await navigator.run(ctx)
-
-
-@member_cmd.child()
-@lightbulb.add_checks(
-    lightbulb.checks.has_guild_permissions(hikari.Permissions.KICK_MEMBERS),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.KICK_MEMBERS)
-)
-@lightbulb.add_cooldown(3, 3, lightbulb.cooldowns.buckets.UserBucket)
-@lightbulb.option("reason", "the reason for kicking the member", str, required=False,
-                  modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
-@lightbulb.option("user", "the user you want to kick", hikari.User, required=True)
-@lightbulb.command("kick", "kick a member", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def kick(ctx: AirySlashContext, user, reason):
-    res = reason or f"'No Reason Provided.' By {ctx.author.username}"
-    await ctx.respond(f"Kicking **{user}**")
-    await ctx.bot.rest.kick_member(user=user, guild=ctx.get_guild(), reason=res)
-    await ctx.edit_last_response(f"Successfully kicked `{user}` for `{res}`!")
-
-
-@member_cmd.child()
-@lightbulb.add_checks(
     lightbulb.checks.has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MANAGE_ROLES),
     lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS)
@@ -205,13 +121,14 @@ async def member_unmute(ctx: AirySlashContext, user: hikari.Member, *, reason: A
 
     guild_config = await GuildModel.filter(guild_id=ctx.guild_id).first()
     if guild_config and not guild_config.mute_role_id:
-        return await ctx.respond('Mute role missing', flags=hikari.MessageFlag.EPHEMERAL)
+        return await ctx.respond(embed=RespondEmbed.error('Mute role missing'))
     await ctx.bot.rest.remove_role_from_member(ctx.guild_id, user, reason=reason, role=guild_config.mute_role_id)
-    _ = (await ReminderModel
-         .filter(Q(event='mute') & Q(extra__contains={"args": [ctx.author.id]}))
-         .delete())
+    status = (await TimerModel
+              .filter(Q(event='mute') & Q(extra__contains={"args": [ctx.author.id]}))
+              .delete())
+    
 
-    await ctx.respond('Successfully unmute member')
+    await ctx.respond(embed=RespondEmbed.success('Successfully unmute member'))
 
 
 @member_cmd.child()
@@ -261,9 +178,9 @@ async def tempmute(ctx: AirySlashContext,
     config.muted_members.append(user.id)
     await config.save()
 
-    duration = await utils.UserFriendlyTime(ctx).convert(duration)
+    duration = await UserFriendlyTime(ctx).convert(duration)
     await reminder.create_timer(MuteEvent, duration, ctx.author.id, user.id, ctx.guild_id, config.mute_role_id)
-    await ctx.respond(f'Muted {user} for {utils.format_relative(duration)}.')
+    await ctx.respond(f'Muted {user} for {format_relative(duration)}.')
 
 
 @member_cmd.child()
@@ -338,17 +255,17 @@ async def selfmute(ctx: AirySlashContext, duration: str):
         return await ctx.respond('Somehow you are already muted',
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
-    duration = await utils.UserFriendlyTime(ctx).convert(duration)
+    duration = await UserFriendlyTime(ctx).convert(duration)
 
-    if duration > (utils.utcnow() + datetime.timedelta(days=1)):
+    if duration > (utcnow() + datetime.timedelta(days=1)):
         return await ctx.respond('Duration is too long. Must be at most 24 hours.',
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
-    if duration < (utils.utcnow() + datetime.timedelta(minutes=5)):
+    if duration < (utcnow() + datetime.timedelta(minutes=5)):
         return await ctx.respond('Duration is too short. Must be at least 5 minutes.',
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
-    delta = utils.human_timedelta(duration, source=utils.utcnow())
+    delta = human_timedelta(duration, source=utcnow())
     reason = f'Self-mute for {ctx.author} (ID: {ctx.author.id}) for {delta}'
     await ctx.bot.rest.add_role_to_member(ctx.guild_id, ctx.author.id, config.mute_role_id, reason=reason)
 
@@ -540,11 +457,11 @@ async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
 @lightbulb.option("user", "the user you want to be put in timeout", hikari.User, required=True)
 @lightbulb.command("timeout", "Timeout a member", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand, lightbulb.PrefixSubCommand)
-async def channel_timeout(ctx: lightbulb.Context, user, reason, time: utils.UserFriendlyTime = 0):
+async def channel_timeout(ctx: lightbulb.Context, user, reason, time: UserFriendlyTime = 0):
     if time == 0:
         await ctx.respond(f"Removing timeout from **{user}**")
     else:
-        now = utils.utcnow()
+        now = utcnow()
         time = await time.convert(ctx.options.time)
 
         if (time - now).days > 28:
