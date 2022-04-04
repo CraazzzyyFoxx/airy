@@ -6,6 +6,7 @@ import asyncio
 import datetime
 import logging
 
+import dateparser
 import hikari
 
 from hikari.internal.enums import Enum
