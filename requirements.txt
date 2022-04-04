@@ -33,6 +33,4 @@ attrs>=21.4.0
 
 python-json-logger>=2.0.2
 
-
-fastapi
-uvicorn
+uvicorn>=0.17.6

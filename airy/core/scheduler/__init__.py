@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import typing as t
 
 import asyncio
@@ -8,20 +9,28 @@ import logging
 
 import dateparser
 import hikari
+import Levenshtein as lev
 
 from hikari.internal.enums import Enum
 
-from .timers import BaseTimerEvent, timers
-from ..tasks import IntervalLoop
-from ..models import TimerModel
-from ...utils import utcnow
+from airy.core.tasks import IntervalLoop
+from airy.core.models import TimerModel, UserModel
+from airy.utils import utcnow
 
-logger = logging.getLogger(__name__)
+from .timers import BaseTimerEvent, timers
+from .consts import *
+
 
 if t.TYPE_CHECKING:
     from ..bot import Airy
 
+
+__all__ = ("ConversionMode",
+           "Scheduler",
+           "BaseTimerEvent")
+
 BaseTimerEventT = t.TypeVar('BaseTimerEventT', bound=BaseTimerEvent)
+logger = logging.getLogger("airy.core.Scheduler")
 
 
 class ConversionMode(int, Enum):
@@ -38,12 +47,25 @@ class Scheduler:
     Essentially the internal scheduler of the bot.
     """
 
+    compiled = re.compile(r"""(?:(?P<years>[0-9])(?:years?|y))?               # e.g. 2y
+                                 (?:(?P<months>[0-9]{1,2})(?:months?|mo))?     # e.g. 2mo
+                                 (?:(?P<weeks>[0-9]{1,4})(?:weeks?|w))?        # e.g. 10w
+                                 (?:(?P<days>[0-9]{1,5})(?:days?|d))?          # e.g. 14d
+                                 (?:(?P<hours>[0-9]{1,5})(?:hours?|h))?        # e.g. 12h
+                                 (?:(?P<minutes>[0-9]{1,5})(?:minutes?|m))?    # e.g. 10m
+                                 (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
+                              """, re.VERBOSE)
+
     def __init__(self, bot: Airy) -> None:
         self.bot: Airy = bot
-        self._current_timer: t.Optional[TimerModel] = None  # Currently active timer that is being awaited
+        self._current_timer: t.Optional[TimerModel] = None  # Currently, active timer that is being awaited
         self._dispatching_task: t.Optional[asyncio.Task] = None  # Current task that is handling current_timer
         self._timer_loop: IntervalLoop = IntervalLoop(self._wait_for_active_timers, hours=1.0)
         self._timer_loop.start()
+
+    @property
+    def current_timer(self):
+        return self._current_timer
 
     async def restart(self) -> None:
         """
@@ -56,6 +78,19 @@ class Scheduler:
         self._timer_loop.cancel()
         self._timer_loop.start()
         logger.info("The scheduler was restarted.")
+
+    def prepare_timer(self, model: TimerModel) -> t.Optional[BaseTimerEvent]:
+        cls = timers.get(model.event)
+
+        if cls is None:
+            return
+
+        return cls(id=model.id,
+                   app=self.bot,
+                   expires=model.expires,
+                   created=model.created,
+                   args=model.extra.get("args"),
+                   kwargs=model.extra.get("kwargs"))
 
     async def get_latest_timer(self, days: int = 7) -> t.Optional[BaseTimerEvent]:
         """Gets the latest timer in the specified range of days.
@@ -73,20 +108,7 @@ class Scheduler:
         await self.bot.wait_until_started()
         model = await TimerModel.filter(expires__lt=utcnow() + datetime.timedelta(days=days)).first()
 
-        if model is None:
-            return
-
-        cls = timers.get(model.event)
-
-        if cls is None:
-            return
-
-        return cls(id=model.id,
-                   app=self.bot,
-                   expires=model.expires,
-                   created=model.created,
-                   args=model.extra.get("args"),
-                   kwargs=model.extra.get("kwargs"))
+        return self.prepare_timer(model)
 
     async def _call_timer(self, timer: BaseTimerEvent) -> None:
         """Calls the provided timer, dispatches TimerCompleteEvent, and removes the timer object from
@@ -212,7 +234,8 @@ class Scheduler:
                                                     kwargs=timer.kwargs,
                                                     expires=timer.expires)
 
-        if self._current_timer and timer.expires <= self._current_timer.expires:
+        if self._current_timer and timer.expires < self._current_timer.expires:
+            logger.debug("Reshuffled timers, created timer is now the latest timer.")
             if self._dispatching_task:
                 self._dispatching_task.cancel()
             self._dispatching_task = asyncio.create_task(self._dispatch_timers())
@@ -236,17 +259,7 @@ class Scheduler:
         if model is None:
             return
 
-        cls = timers.get(model.event)
-
-        if cls is None:
-            return
-
-        return cls(id=model.id,
-                   app=self.bot,
-                   expires=model.expires,
-                   created=model.created,
-                   args=model.extra.get("args"),
-                   kwargs=model.extra.get("kwargs"))
+        return self.prepare_timer(model)
 
     async def cancel_timer(self, timer_id: int) -> t.Optional[TimerModel]:
         """Prematurely cancel a timer before expiry. Returns the cancelled timer.
@@ -282,21 +295,21 @@ class Scheduler:
 
     async def convert_time(
             self,
-            timestr: str,
+            time_string: str,
             *,
             user: t.Optional[hikari.SnowflakeishOr[hikari.PartialUser]] = None,
-            conversion_mode: t.Optional[ConversionMode] = None,
+            conversion_mode: t.Optional[ConversionMode] = ConversionMode.RELATIVE,
             future_time: bool = False,
     ) -> datetime.datetime:
         """Try converting a string of human-readable time to a datetime object.
 
         Parameters
         ----------
-        timestr : str
+        time_string : str
             The string containing the time.
         user : t.Optional[hikari.SnowflakeishOr[hikari.PartialUser]], optional
             The user whose preferences will be used in the case of timezones, by default None
-        force_mode : t.Optional[str], optional
+        conversion_mode : t.Optional[str], optional
             If specified, forces either 'relative' or 'absolute' conversion, by default None
         future_time : bool, optional
             If True and the time specified is in the past, raise an error, by default False
@@ -316,37 +329,14 @@ class Scheduler:
             Time is not in the future.
         """
         user_id = hikari.Snowflake(user) if user else None
-        logger.debug(f"String passed for time conversion: {timestr}")
+        logger.debug(f"String passed for time conversion: {time_string}")
 
-        if not conversion_mode or conversion_mode == ConversionMode.RELATIVE:
-            # Relative time conversion
-            # Get any pair of <number><word> with a single optional space in between, and return them as a dict (sort of)
-            time_regex = re.compile(r"(\d+(?:[.,]\d+)?)\s?(\w+)")
-            time_letter_dict = {
-                "h": 3600,
-                "s": 1,
-                "m": 60,
-                "d": 86400,
-                "w": 86400 * 7,
-                "M": 86400 * 30,
-                "Y": 86400 * 365,
-                "y": 86400 * 365,
-            }
-            time_word_dict = {
-                "hour": 3600,
-                "second": 1,
-                "minute": 60,
-                "day": 86400,
-                "week": 86400 * 7,
-                "month": 86400 * 30,
-                "year": 86400 * 365,
-                "sec": 1,
-                "min": 60,
-            }
-            matches = time_regex.findall(timestr)
+        if conversion_mode == ConversionMode.RELATIVE:
+            matches = self.compiled.fullmatch(time_string)
+            data = {k: int(v) for k, v in matches.groupdict(default=0).items()}
             time = 0
 
-            for val, category in matches:
+            for val, category in data:
                 val = val.replace(",", ".")  # Replace commas with periods to correctly register decimal places
                 # If this is a single letter
 
@@ -356,7 +346,8 @@ class Scheduler:
 
                 else:
                     # If a partial match is found with any of the keys
-                    # Reason for making the same code here is because words are case-insensitive, as opposed to single letters
+                    # Reason for making the same code here is because
+                    # words are case-insensitive, as opposed to single letters
 
                     for string in time_word_dict.keys():
                         if (
@@ -369,18 +360,19 @@ class Scheduler:
                 return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=time)
 
             if conversion_mode == ConversionMode.RELATIVE:
-                raise ValueError("Failed time conversion. (relative)")
+                raise ValueError("Failed time conversion.")
 
-        if not conversion_mode or conversion_mode == ConversionMode.ABSOLUTE:
+        if conversion_mode == ConversionMode.ABSOLUTE:
 
             timezone = "UTC"
             if user_id:
-                records = await self.bot.db_cache.get(table="preferences", user_id=user_id, limit=1)
-                timezone = records[0].get("timezone") if records else "UTC"
-                assert timezone is not None  # Fucking pointless, I hate you pyright
+                model = await UserModel.filter(user_id=user_id).first()
+                if model:
+                    timezone = model.tz
+                    assert timezone is not None  # Fucking pointless, I hate you pyright
 
             time = dateparser.parse(
-                timestr, settings={"RETURN_AS_TIMEZONE_AWARE": True, "TIMEZONE": timezone, "NORMALIZE": True}
+                time_string, settings={"RETURN_AS_TIMEZONE_AWARE": True, "TIMEZONE": timezone, "NORMALIZE": True}
             )
 
             if not time:

@@ -19,6 +19,7 @@ from ..models.context import *
 from airy.utils.time import utcnow, format_dt
 from ...utils import db_backup
 from ..log import log_config
+from ..scheduler import Scheduler
 
 log = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class Airy(BotApp, ABC):
         self._config = bot_config
 
         self.redis = aioredis.from_url(url="redis://localhost:6379")
+        self._scheduler = Scheduler(self)
 
         self.load_extensions_from("./airy/extensions")
         self.create_subscriptions()
@@ -78,6 +80,10 @@ class Airy(BotApp, ABC):
     def is_started(self) -> bool:
         """Boolean indicating if the bot has started up or not."""
         return self._is_started
+
+    @property
+    def scheduler(self) -> Scheduler:
+        return self._scheduler
 
     async def wait_until_started(self) -> None:
         """

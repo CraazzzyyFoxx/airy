@@ -8,6 +8,7 @@ import miru
 
 
 from .views import AuthorOnlyView
+from ...utils import RespondEmojiEnum
 
 __all__ = ["AiryContext", "AirySlashContext", "AiryMessageContext", "AiryUserContext", "AiryPrefixContext"]
 
@@ -20,7 +21,7 @@ class ConfirmView(AuthorOnlyView):
 
     def __init__(
         self,
-        ctx: lightbulb.Context,
+        ctx: AiryContext,
         timeout: int,
         confirm_resp: t.Optional[t.Dict[str, t.Any]] = None,
         cancel_resp: t.Optional[t.Dict[str, t.Any]] = None,
@@ -30,14 +31,14 @@ class ConfirmView(AuthorOnlyView):
         self.cancel_resp = cancel_resp
         self.value: t.Optional[bool] = None
 
-    @miru.button(label="Confirm", emoji="✔️", style=hikari.ButtonStyle.SUCCESS)
+    @miru.button(label="Confirm", emoji=RespondEmojiEnum.SUCCESS, style=hikari.ButtonStyle.SUCCESS)
     async def confirm_button(self, button: miru.Button, ctx: miru.ViewContext) -> None:
         self.value = True
         if self.confirm_resp:
             await ctx.edit_response(**self.confirm_resp)
         self.stop()
 
-    @miru.button(label="Cancel", emoji="✖️", style=hikari.ButtonStyle.DANGER)
+    @miru.button(label="Cancel", emoji=RespondEmojiEnum.ERROR, style=hikari.ButtonStyle.DANGER)
     async def cancel_button(self, button: miru.Button, ctx: miru.ViewContext) -> None:
         self.value = False
         if self.cancel_resp:
