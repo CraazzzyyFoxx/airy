@@ -35,14 +35,22 @@ the bot is with the following template:
 
 ```env
 BOT_TOKEN = <bot_token_here>
+BOT_DEV_GUILDS = []
+BOT_ERRORS_TRACE_CHANNEL = <channel_id>
+BOT_INFO_CHANNEL = <channel_id>
+BOT_STATS_CHANNEL = <channel_id>
+
 POSTGRES_DB = <bot_database>
 POSTGRES_HOST = <database_host>
 POSTGRES_PASSWORD = <database_password>
 POSTGRES_PORT = <database_port>
 POSTGRES_USER = <database_user>
-LAVALINK_PASSWORD = <lavalink_password>
 INITIALIZE_DB = <true | false>
 MIGRATE_DB = <true | false>
+
+LAVALINK_URL=<url_here>
+LAVALINK_PASSWORD = <lavalink_password>
+
 SPOTIFY_CLIENT_ID = <spotify_client_id>
 SPOTIFY_CLIENT_SECRET = <spotify_client_secret>
 ```
