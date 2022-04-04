@@ -57,42 +57,14 @@ log_config = {
     },
     "loggers": {
         "airy": {"level": "INFO",
-                 "handlers": ["stream", "json"], },
+                 "handlers": ["stream", "json", "logfile"], },
         "lavacord": {"level": "INFO",
-                     "handlers": ["stream", "json"], },
+                     "handlers": ["stream", "json", "logfile"], },
         "lightbulb": {"level": "INFO",
-                      "handlers": ["stream", "json"], },
+                      "handlers": ["stream", "json", "logfile"], },
         "hikari.gateway": {"level": "INFO",
-                           "handlers": ["stream", "json"], },
+                           "handlers": ["stream", "json", "logfile"], },
         "hikari.ratelimits": {"level": "INFO",
-                              "handlers": ["stream", "json"], },
+                              "handlers": ["stream", "json", "logfile"], },
     },
-}
-
-LOGGING_CONFIG = {
-    "formatters": {
-        "default": {...},
-        "simple": {...},
-        "json": {...},
-    },
-    "handlers": {
-        "logfile": {...},
-        "verbose_output": {...},
-        "json": {...},
-    },
-    "loggers": {
-        "tryceratops": {  # The name of the logger, this SHOULD match your module!
-            "level": "INFO",  # FILTER: only INFO logs onwards from "tryceratops" logger
-            "handlers": [
-                "verbose_output",  # Refer the handler defined above
-            ],
-        },
-    },
-    "root": {  # All loggers (including tryceratops)
-        "level": "INFO",  # FILTER: only INFO logs onwards
-        "handlers": [
-            "logfile",  # Refer the handler defined above
-            "json"  # Refer the handler defined above
-        ]
-    }
 }
