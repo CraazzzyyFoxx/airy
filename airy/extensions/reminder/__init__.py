@@ -4,13 +4,13 @@ import textwrap
 
 import hikari
 import lightbulb
-
 from tortoise.expressions import Q
 
 from airy.core import Airy, AirySlashContext, TimerModel, AiryPlugin
 from airy.core.scheduler import ConversionMode
 from airy.core.scheduler.timers import ReminderEvent
-from airy.utils import ColorEnum, RespondEmbed, time, formats
+from airy.etc import ColorEnum
+from airy.utils import RespondEmbed, time, formats
 
 
 class ReminderPlugin(AiryPlugin):

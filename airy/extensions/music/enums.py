@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from airy.utils import Enum
+from hikari.internal.enums import Enum
 
 __all__ = (
     "ButtonEmojis",

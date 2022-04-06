@@ -2,8 +2,8 @@ import typing
 
 import hikari
 
+from airy.etc import RespondIconsEnum, ColorEnum
 from airy.utils.time import utcnow
-from airy.utils.enums import RespondIconsEnum, ColorEnum
 
 
 class BaseEmbed(hikari.Embed):

@@ -6,8 +6,8 @@ import hikari
 import miru
 
 from airy.core import AirySlashContext, MenuViewAuthorOnly, ActionMenusModel, ActionMenusButtonModel, ActionType, Airy
-from airy.utils import ColorEnum, utcnow, helpers, RespondEmbed, MenuEmojiEnum
-
+from airy.etc import ColorEnum, MenuEmojiEnum
+from airy.utils import utcnow, helpers, RespondEmbed
 from .enums import button_styles
 
 

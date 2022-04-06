@@ -5,11 +5,8 @@ from typing import Any, Dict, Optional, Union, List, TYPE_CHECKING
 import hikari
 import miru
 
-from airy.utils import ColorEnum
-
+from airy.etc import ColorEnum
 from . import menus
-from .utils import Paginator, maybe_coroutine
-
 from .buttons import (AiryPagesT,
                       FirstButton,
                       IndicatorButton,
@@ -20,6 +17,7 @@ from .buttons import (AiryPagesT,
                       PrevButton,
                       StopButton,
                       )
+from .utils import Paginator, maybe_coroutine
 
 if TYPE_CHECKING:
     from airy.core import AirySlashContext, AiryPrefixContext
@@ -120,7 +118,7 @@ class AiryPages(miru.View):
         self._inter = context.interaction  # Update latest inter
         await context.edit_response(**kwargs)
 
-    async def interaction_check(self, ctx: miru.ViewContext) -> bool:
+    async def view_check(self, ctx: miru.ViewContext) -> bool:
         if ctx.user and ctx.user.id == self.ctx.author.id:
             return True
         await ctx.respond('This pagination menu cannot be controlled by you, sorry!',

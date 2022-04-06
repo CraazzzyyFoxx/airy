@@ -1,21 +1,15 @@
-import asyncio
 import logging
-import random
+import logging
 import typing as t
 from enum import IntEnum
-from io import BytesIO
-from pathlib import Path
-from textwrap import fill
 
-import aiohttp
 import hikari
-import Levenshtein as lev
 import lightbulb
 import miru
 
-import airy
-from airy.core import Airy, AirySlashContext, AiryUserContext
-from airy.utils import helpers, utcnow, RespondEmbed, ColorEnum
+from airy.core import Airy, AirySlashContext
+from airy.etc import ColorEnum
+from airy.utils import helpers, RespondEmbed
 
 logger = logging.getLogger(__name__)
 

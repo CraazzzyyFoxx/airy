@@ -3,10 +3,11 @@ import logging
 import hikari
 import lightbulb
 
-from airy.etc import get_perm_str
-from airy.core.models import AirySlashContext
 from airy.core import Airy
-from airy.utils import RespondEmbed, RespondEmojiEnum
+from airy.core.models import AirySlashContext
+from airy.etc import RespondEmojiEnum
+from airy.etc import get_perm_str
+from airy.utils import RespondEmbed
 
 logger = logging.getLogger(__name__)
 

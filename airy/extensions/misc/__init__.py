@@ -1,14 +1,12 @@
 
 import logging
 
-
 import hikari
 import lightbulb
-from lightbulb import commands, context, decorators, plugins
+from lightbulb import plugins
 
-import airy
-from airy.utils import ColorEnum, helpers, RespondEmbed
 from airy.core import Airy, AirySlashContext
+from airy.etc import ColorEnum
 
 misc = plugins.Plugin("Misc")
 

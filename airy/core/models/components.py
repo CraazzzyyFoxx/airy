@@ -3,8 +3,7 @@ import typing as t
 import hikari
 import miru
 
-from airy.utils import MenuEmojiEnum
-
+from airy.etc import MenuEmojiEnum
 
 __all__ = ("BooleanButton",
            "OptionButton",

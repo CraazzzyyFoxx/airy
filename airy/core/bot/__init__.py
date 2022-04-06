@@ -9,17 +9,15 @@ import aioredis
 import hikari
 import lightbulb
 import miru
-
 from lightbulb.app import BotApp
 from tortoise import Tortoise
 
 from airy.config import tortoise_config, bot_config, BotConfig
-from ..models.context import *
-
 from airy.utils.time import utcnow, format_dt
-from ...utils import db_backup
 from ..log import log_config
+from ..models.context import *
 from ..scheduler import Scheduler
+from ...utils import db_backup
 
 log = logging.getLogger(__name__)
 
@@ -140,6 +138,7 @@ class Airy(BotApp, ABC):
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         await self.connect_db()
+        await self.scheduler.start()
 
     async def on_started(self, _: hikari.StartedEvent) -> None:
         user = self.get_me()

@@ -1,19 +1,18 @@
-import datetime
-import typing as t
-import logging
 import asyncio
+import datetime
+import logging
+import typing as t
 
 import hikari
 import lightbulb
 import miru
 import pytz
-
 from fuzzywuzzy import process
 
-from airy.core.models import AirySlashContext, UserModel
 from airy.core.bot import Airy
-
-from airy.utils import SimplePages, RespondEmbed, format_dt, ColorEnum
+from airy.core.models import AirySlashContext, UserModel
+from airy.etc import ColorEnum
+from airy.utils import SimplePages, RespondEmbed, format_dt
 
 logger = logging.getLogger(__name__)
 

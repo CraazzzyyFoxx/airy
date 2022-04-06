@@ -1,20 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-import copy
-import json
 import logging
 import typing as t
 
-import hikari
 import lightbulb
-import miru
 
-from airy.core import Airy, AirySlashContext
-from airy.utils import helpers, ColorEnum, EmojisEnum
-from airy.core.models.components import *
-from airy.etc.settings_static import *
+from airy.core import AirySlashContext
 from airy.core import models
+from airy.core.models.components import *
+from airy.etc import ColorEnum, EmojisEnum
+from airy.etc.settings_static import *
 
 logger = logging.getLogger(__name__)
 

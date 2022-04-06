@@ -1,18 +1,16 @@
-import datetime as dt
 import logging
-import platform
-import time
-import typing as t
+from dataclasses import dataclass
+
+import logging
 from dataclasses import dataclass
 
 import hikari
 import lightbulb
-from psutil import Process, virtual_memory
 from pygount import SourceAnalysis
 
 import airy
-from airy.utils import ColorEnum, helpers, RespondEmbed
-from airy.core import Airy, AirySlashContext, AiryPlugin, GuildModel
+from airy.core import Airy, AiryPlugin, GuildModel
+from airy.etc import ColorEnum
 
 
 class MetaPlugin(AiryPlugin):

@@ -36,10 +36,11 @@ pygount = "~=1.3.0"
 attrs = "~=21.4.0"
 #python-json-logger = "~=2.0.2"
 
+hikari-lightbulb = "~=2.2.1"
+
 #dateparser = {git = "https://github.com/scrapinghub/dateparser.git", tag="v1.1.1"}
-hikari-miru = {git = "https://github.com/HyperGH/hikari-miru.git", branch="cursed/branch"}
-hikari-lightbulb = {git = "https://github.com/HyperGH/hikari-lightbulb.git", branch="development"}
-"lavacord.py" = {git = "https://github.com/CraazzzyyFoxx/lavacord.py"}
+hikari-miru = { git = "https://github.com/HyperGH/hikari-miru.git", branch = "cursed/branch" }
+"lavacord.py" = { git = "https://github.com/CraazzzyyFoxx/lavacord.py" }
 
 
 [tool.poetry.dev-dependencies]

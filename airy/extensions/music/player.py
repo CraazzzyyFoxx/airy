@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import typing as t
 import asyncio
+import typing as t
 
 import hikari
-
-import lavacord
 import miru
 
-from airy.core import AirySlashContext
+import lavacord
+from airy.core import AirySlashContext, Airy
 from airy.core.models.errors import *
 from airy.utils import RespondEmbed
-
 from .buttons import *
 from .checks import _can_edit_player_buttons
 
@@ -19,7 +17,7 @@ from .checks import _can_edit_player_buttons
 class PlayerMenu(miru.View):
     def __init__(self, player: AiryPlayer):
         super().__init__()
-        self.player = player
+        self.player: AiryPlayer = player
         self.embed: t.Optional[hikari.Embed] = None
 
         self.currently_editing = asyncio.Lock()
@@ -33,12 +31,12 @@ class PlayerMenu(miru.View):
         self.currently_editing.release()
 
     async def __aenter__(self):
-        self.task: asyncio.Task = self.player.node.bot.create_task(self.forced_release())  # type: ignore
+        self.forced_release_task: asyncio.Task = self.player.node.bot.create_task(self.forced_release())  # type: ignore
         await self.currently_editing.acquire()
 
-    async def __aexit__(self):
+    async def __aexit__(self, exc_type, exc, tb):
         self.currently_editing.release()
-        self.task.cancel()
+        self.forced_release_task.cancel()
 
     async def view_check(self, ctx: miru.ViewContext) -> bool:
         try:
@@ -61,11 +59,12 @@ class PlayerMenu(miru.View):
     def get_default_buttons() -> t.List[PlayerButton[PlayerMenuT]]:
         return [SkipToButton(), PreviousButton(), PlayOrPauseButton(), NextButton(), RepeatButton()]
 
-    async def get_last_message(self) -> hikari.Message:
-        channel_id = self.player.text_channel_id
-        messages = self.player.node.bot.cache.get_messages_view()
-        messages_ = [message async for message in messages.iterator().filter(lambda m: m.channel_id == channel_id)]
-        return messages_[-1]
+    async def maybe_resend(self):
+        if not self._message:
+            return True
+
+        channel = await self.bot.rest.fetch_channel(self.player.text_channel_id)  # type: ignore
+        return self.message.id != channel.last_message_id
 
     async def get_kwargs(self):
         for button in self.children:
@@ -74,28 +73,29 @@ class PlayerMenu(miru.View):
         return dict(embed=self.create_embed(), components=self.build())
 
     async def send_menu_component(self, ctx: miru.ViewContext):
-        async with self.currently_editing:
+        async with self:
             kwargs = await self.get_kwargs()
-            if self.message != await self.get_last_message():
+
+            if await self.maybe_resend():
                 await self.message.delete()
-                del self._message
+                self._message = None
                 await ctx.respond(**kwargs)
             else:
                 await ctx.edit_response(**kwargs)
 
     async def send_menu(self):
-        async with self.currently_editing:
+        async with self:
             kwargs = await self.get_kwargs()
 
-            if self.message != await self.get_last_message():
+            if await self.maybe_resend():
                 await self.message.delete()
                 del self._message
                 self._message = await self.player.text_channel.send(**kwargs)
             else:
                 await self._message.edit(**kwargs)
 
-    def stop(self) -> None:
-        self.player.node.bot.create_task(self._message.delete())  # type: ignore
+    async def stop(self) -> None:
+        await self._message.delete()
         super().stop()
 
     def create_embed(self):
@@ -145,6 +145,10 @@ class AiryPlayer(lavacord.Player):
     def text_channel(self) -> hikari.TextableGuildChannel:
         return self.node.bot.cache.get_guild_channel(self.text_channel_id)  # type: ignore
 
+    @property
+    def bot(self) -> Airy:
+        return self.node.bot  # type: ignore
+
     async def send_menu(self, message: AirySlashContext = None):
         if self.menu:
             await self.menu.send_menu()
@@ -153,8 +157,5 @@ class AiryPlayer(lavacord.Player):
             await self.menu.send(message)
 
     async def destroy(self):
-        try:
-            self.menu.stop()
-        except:
-            pass
         await super().destroy()
+        await self.menu.stop()

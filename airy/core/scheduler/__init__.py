@@ -1,25 +1,21 @@
 from __future__ import annotations
 
-import re
-import typing as t
-
 import asyncio
 import datetime
 import logging
+import re
+import typing as t
 
+import Levenshtein as lev
 import dateparser
 import hikari
-import Levenshtein as lev
-
 from hikari.internal.enums import Enum
 
-from airy.core.tasks import IntervalLoop
 from airy.core.models import TimerModel, UserModel
+from airy.core.tasks import IntervalLoop
 from airy.utils import utcnow
-
-from .timers import BaseTimerEvent, timers
 from .consts import *
-
+from .timers import BaseTimerEvent, timers
 
 if t.TYPE_CHECKING:
     from ..bot import Airy
@@ -61,11 +57,13 @@ class Scheduler:
         self._current_timer: t.Optional[TimerModel] = None  # Currently, active timer that is being awaited
         self._dispatching_task: t.Optional[asyncio.Task] = None  # Current task that is handling current_timer
         self._timer_loop: IntervalLoop = IntervalLoop(self._wait_for_active_timers, hours=1.0)
-        self._timer_loop.start()
 
     @property
     def current_timer(self):
         return self._current_timer
+
+    async def start(self):
+        self._timer_loop.start()
 
     async def restart(self) -> None:
         """

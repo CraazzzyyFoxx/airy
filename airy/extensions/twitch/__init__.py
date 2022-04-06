@@ -1,16 +1,8 @@
-import datetime
-import typing as t
 import logging
-import asyncio
 
-import hikari
 import lightbulb
-import miru
 
 from airy.core.models import AirySlashContext
-from airy.core.bot import Airy
-
-from airy.utils import SimplePages, RespondEmbed, format_dt, ColorEnum
 
 logger = logging.getLogger(__name__)
 

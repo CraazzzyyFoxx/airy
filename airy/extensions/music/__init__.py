@@ -1,16 +1,14 @@
 import typing as t
 
 import hikari
-import lavacord
 import lightbulb
 import orjson
-
 from tekore import Spotify, request_client_token
 
+import lavacord
 from airy.config import lavalink_config, spotify_config
 from airy.core import AiryPlugin, AirySlashContext
 from airy.utils import RespondEmbed, SimplePages
-
 from .checks import can_edit_player, is_connected
 from .player import AiryPlayer
 
@@ -59,7 +57,7 @@ plugin = MusicPlugin()
 @plugin.listener(lavacord.TrackExceptionEvent)
 @plugin.listener(lavacord.TrackEndEvent)
 async def track_end(event: lavacord.TrackEndEvent):
-    player = event.player
+    player: AiryPlayer = event.player
 
     states = plugin.bot.cache.get_voice_states_view_for_guild(event.guild_id)
     voice_states = [state async for state in states.iterator()
@@ -142,6 +140,7 @@ async def queue_cmd(ctx: AirySlashContext):
     player: AiryPlayer = await plugin.lavalink.get_player(ctx.guild_id)  # type: ignore
     if not player:
         return
+    # TODO: When u type queue slash command someone else can play with paginators
     pages = SimplePages(player.queue.__str__(), ctx=ctx)
     await pages.send(ctx.interaction)
 

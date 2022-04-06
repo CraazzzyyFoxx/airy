@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import datetime
 import typing as t
@@ -7,7 +9,8 @@ import hikari
 
 from airy.utils import time, utcnow
 
-from airy.core import Airy
+if t.TYPE_CHECKING:
+    from airy.core import Airy
 
 
 __all__ = ("BaseTimerEvent",
