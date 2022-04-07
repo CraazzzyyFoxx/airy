@@ -7,9 +7,8 @@ import miru
 
 from .enums import ButtonEmojis
 
-
 if t.TYPE_CHECKING:
-    from .player import PlayerMenu
+    pass
 
 
 __all__ = ("PlayOrPauseButton",
@@ -71,9 +70,10 @@ class PlayerButton(miru.Button[PlayerMenuT]):
 
 
 class PlayOrPauseButton(PlayerButton):
-    def __init__(self):
+    def __init__(self, guild_id: hikari.Snowflake):
         super().__init__(label="Play",
                          emoji=ButtonEmojis.play,
+                         custom_id=f"music_player:{guild_id}:play_or_pause"
                          )
 
     async def callback(self, context: miru.ViewContext) -> None:
@@ -94,9 +94,10 @@ class PlayOrPauseButton(PlayerButton):
 
 
 class PreviousButton(PlayerButton):
-    def __init__(self):
+    def __init__(self, guild_id: hikari.Snowflake):
         super().__init__(label="Previous",
                          emoji=ButtonEmojis.previous,
+                         custom_id=f"music_player:{guild_id}:previous"
                          )
 
     async def callback(self, context: miru.ViewContext) -> None:
@@ -114,9 +115,10 @@ class PreviousButton(PlayerButton):
 
 
 class NextButton(PlayerButton):
-    def __init__(self):
+    def __init__(self, guild_id: hikari.Snowflake):
         super().__init__(label="Next",
                          emoji=ButtonEmojis.next,
+                         custom_id=f"music_player:{guild_id}:next"
                          )
 
     async def callback(self, context: miru.ViewContext) -> None:
@@ -132,9 +134,10 @@ class NextButton(PlayerButton):
 
 
 class RepeatButton(PlayerButton):
-    def __init__(self):
+    def __init__(self, guild_id: hikari.Snowflake):
         super().__init__(label="OFF",
                          emoji=ButtonEmojis.repeat,
+                         custom_id=f"music_player:{guild_id}:repeat"
                          )
 
     async def callback(self, context: miru.ViewContext) -> None:
@@ -162,9 +165,10 @@ class RepeatButton(PlayerButton):
 
 
 class SkipToButton(PlayerButton):
-    def __init__(self):
+    def __init__(self, guild_id: hikari.Snowflake):
         super().__init__(label="Skip to",
                          emoji=ButtonEmojis.skipto,
+                         custom_id=f"music_player:{guild_id}:skip_to"
                          )
 
     async def before_update_menu(self) -> None:

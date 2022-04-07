@@ -1,15 +1,12 @@
 import datetime
 
-import lightbulb
 import hikari
-
+import lightbulb
 from tortoise.expressions import Q
 
 from airy.core import GuildModel, TimerModel, AirySlashContext
 from airy.core.scheduler.timers import MuteEvent
-from airy.utils import human_timedelta, UserFriendlyTime, utcnow, format_relative, RespondEmbed
-
-
+from airy.utils import human_timedelta, utcnow, format_relative, RespondEmbed
 from .convertors import ActionReason
 
 mod_plugin = lightbulb.Plugin("Moderation")
@@ -28,15 +25,15 @@ async def update_mute_role_permissions(ctx: lightbulb.SlashContext, role: hikari
             if channel.type == hikari.ChannelType.GUILD_TEXT:
                 await channel.edit_overwrite(role,
                                              target_type=hikari.PermissionOverwriteType.ROLE,
-                                             deny=hikari.Permissions.SEND_MESSAGES |
-                                                  hikari.Permissions.ADD_REACTIONS,
+                                             deny=(hikari.Permissions.SEND_MESSAGES |
+                                                   hikari.Permissions.ADD_REACTIONS),
                                              reason=reason)
             elif channel.type == hikari.ChannelType.GUILD_VOICE:
                 await channel.edit_overwrite(role,
                                              target_type=hikari.PermissionOverwriteType.ROLE,
                                              deny=hikari.Permissions.USE_VOICE_ACTIVITY | hikari.Permissions.SPEAK,
                                              reason=reason)
-        except Exception:
+        except (hikari.ForbiddenError, hikari.HTTPError, hikari.NotFoundError):
             failure += 1
         else:
             success += 1
@@ -108,7 +105,7 @@ async def member_cmd(_: AirySlashContext):
 @lightbulb.command("unmute", "Unmute a member", pass_options=True)
 @lightbulb.implements(lightbulb.SlashSubCommand)
 async def member_unmute(ctx: AirySlashContext, user: hikari.Member, *, reason: ActionReason = None):
-    """Unmutes members using the configured mute role.
+    """Unmute members using the configured mute role.
 
     The bot must have Manage Roles permission and be
     above the muted role in the hierarchy.
@@ -125,10 +122,9 @@ async def member_unmute(ctx: AirySlashContext, user: hikari.Member, *, reason: A
     if guild_config and not guild_config.mute_role_id:
         return await ctx.respond(embed=RespondEmbed.error('Mute role missing'))
     await ctx.bot.rest.remove_role_from_member(ctx.guild_id, user, reason=reason, role=guild_config.mute_role_id)
-    status = (await TimerModel
-              .filter(Q(event='mute') & Q(extra__contains={"args": [ctx.author.id]}))
-              .delete())
-    
+    _ = (await TimerModel
+         .filter(Q(event='mute') & Q(extra__contains={"args": [ctx.author.id]}))
+         .delete())
 
     await ctx.respond(embed=RespondEmbed.success('Successfully unmute member'))
 
@@ -165,11 +161,6 @@ async def tempmute(ctx: AirySlashContext,
     if reason is None:
         reason = f'Action done by {ctx.author} (ID: {ctx.author.id})'
 
-    reminder = ctx.bot.get_plugin('Reminder')
-    if reminder is None:
-        return await ctx.respond('Sorry, this functionality is currently unavailable. Try again later?',
-                                 flags=hikari.MessageFlag.EPHEMERAL)
-
     config = await GuildModel.filter(guild_id=ctx.guild_id).first()
 
     if config and not config.mute_role_id:
@@ -180,8 +171,8 @@ async def tempmute(ctx: AirySlashContext,
     config.muted_members.append(user.id)
     await config.save()
 
-    duration = await UserFriendlyTime(ctx).convert(duration)
-    await reminder.create_timer(MuteEvent, duration, ctx.author.id, user.id, ctx.guild_id, config.mute_role_id)
+    duration = await ctx.bot.scheduler.convert_time(duration)
+    await ctx.bot.scheduler.create_timer(MuteEvent, duration, ctx.author.id, user.id, ctx.guild_id, config.mute_role_id)
     await ctx.respond(f'Muted {user} for {format_relative(duration)}.')
 
 
@@ -257,7 +248,7 @@ async def selfmute(ctx: AirySlashContext, duration: str):
         return await ctx.respond('Somehow you are already muted',
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
-    duration = await UserFriendlyTime(ctx).convert(duration)
+    duration = await ctx.bot.scheduler.convert_time(duration)
 
     if duration > (utcnow() + datetime.timedelta(days=1)):
         return await ctx.respond('Duration is too long. Must be at most 24 hours.',
@@ -271,12 +262,12 @@ async def selfmute(ctx: AirySlashContext, duration: str):
     reason = f'Self-mute for {ctx.author} (ID: {ctx.author.id}) for {delta}'
     await ctx.bot.rest.add_role_to_member(ctx.guild_id, ctx.author.id, config.mute_role_id, reason=reason)
 
-    await reminder.create_timer(MuteEvent,
-                                duration,
-                                ctx.author.id,
-                                ctx.author.id,
-                                ctx.guild_id,
-                                config.mute_role_id)
+    await ctx.bot.scheduler.create_timer(MuteEvent,
+                                         duration,
+                                         ctx.author.id,
+                                         ctx.author.id,
+                                         ctx.guild_id,
+                                         config.mute_role_id)
 
     config.muted_members.append(ctx.author.id)
     await config.save()
@@ -458,13 +449,13 @@ async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
                   modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
 @lightbulb.option("user", "the user you want to be put in timeout", hikari.User, required=True)
 @lightbulb.command("timeout", "Timeout a member", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand, lightbulb.PrefixSubCommand)
-async def channel_timeout(ctx: lightbulb.Context, user, reason, time: UserFriendlyTime = 0):
-    if time == 0:
+@lightbulb.implements(lightbulb.SlashSubCommand)
+async def channel_timeout(ctx: AirySlashContext, user: hikari.User, reason: str, time: str = None):
+    if time is None:
         await ctx.respond(f"Removing timeout from **{user}**")
     else:
         now = utcnow()
-        time = await time.convert(ctx.options.time)
+        time = await ctx.bot.scheduler.convert_time(time)
 
         if (time - now).days > 28:
             await ctx.respond("You can't time someone out for more than 28 days")

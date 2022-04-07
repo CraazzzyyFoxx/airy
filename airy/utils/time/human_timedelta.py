@@ -1,13 +1,11 @@
 from datetime import datetime, timezone
 
-import parsedatetime as pdt
 import lightbulb
-
+import parsedatetime as pdt
 from dateutil.relativedelta import relativedelta
 
-from airy.utils.formats import human_join, Plural
 from airy.utils.formats import format_dt
-
+from airy.utils.formats import human_join, Plural
 from .ShortTime import ShortTime
 from .now import utcnow
 
@@ -62,7 +60,7 @@ class UserFriendlyTime(lightbulb.converters.BaseConverter[datetime]):
     def __init__(self, context) -> None:
         super().__init__(context)
 
-    async def convert(self, arg):
+    async def convert(self, arg) -> datetime:
         # Create a copy of ourselves to prevent race conditions from two
         # events modifying the same instance of a converter
         try:

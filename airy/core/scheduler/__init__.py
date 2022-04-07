@@ -43,14 +43,7 @@ class Scheduler:
     Essentially the internal scheduler of the bot.
     """
 
-    compiled = re.compile(r"""(?:(?P<years>[0-9])(?:years?|y))?               # e.g. 2y
-                                 (?:(?P<months>[0-9]{1,2})(?:months?|mo))?     # e.g. 2mo
-                                 (?:(?P<weeks>[0-9]{1,4})(?:weeks?|w))?        # e.g. 10w
-                                 (?:(?P<days>[0-9]{1,5})(?:days?|d))?          # e.g. 14d
-                                 (?:(?P<hours>[0-9]{1,5})(?:hours?|h))?        # e.g. 12h
-                                 (?:(?P<minutes>[0-9]{1,5})(?:minutes?|m))?    # e.g. 10m
-                                 (?:(?P<seconds>[0-9]{1,5})(?:seconds?|s))?    # e.g. 15s
-                              """, re.VERBOSE)
+    compiled = re.compile(r"(\d+(?:[.,]\d+)?)\s?(\w+)")
 
     def __init__(self, bot: Airy) -> None:
         self.bot: Airy = bot
@@ -330,11 +323,10 @@ class Scheduler:
         logger.debug(f"String passed for time conversion: {time_string}")
 
         if conversion_mode == ConversionMode.RELATIVE:
-            matches = self.compiled.fullmatch(time_string)
-            data = {k: int(v) for k, v in matches.groupdict(default=0).items()}
+            matches = self.compiled.findall(time_string)
             time = 0
 
-            for val, category in data:
+            for val, category in matches:
                 val = val.replace(",", ".")  # Replace commas with periods to correctly register decimal places
                 # If this is a single letter
 
@@ -344,8 +336,8 @@ class Scheduler:
 
                 else:
                     # If a partial match is found with any of the keys
-                    # Reason for making the same code here is because
-                    # words are case-insensitive, as opposed to single letters
+                    # Reason for making the same code here is because words are case-insensitive,
+                    # as opposed to single letters
 
                     for string in time_word_dict.keys():
                         if (
@@ -357,8 +349,7 @@ class Scheduler:
             if time > 0:  # If we found time
                 return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=time)
 
-            if conversion_mode == ConversionMode.RELATIVE:
-                raise ValueError("Failed time conversion.")
+            raise ValueError("Failed time conversion.")
 
         if conversion_mode == ConversionMode.ABSOLUTE:
 
