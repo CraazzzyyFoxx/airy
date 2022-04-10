@@ -112,12 +112,10 @@ class Scheduler:
         """
 
         await TimerModel.filter(id=timer.id).delete()
-        await self.bot.dispatch(timer)
-
         self._current_timer = None
 
         await self.bot.dispatch(timer)
-        logger.info(f"Dispatched TimerCompleteEvent for {timer.event} (ID: {timer.id})")
+        logger.info(f"Dispatched {timer.__name__} (ID: {timer.id})")
 
     async def short_timer_optimisation(self, seconds: t.Union[int, float], timer: BaseTimerEvent):
         await asyncio.sleep(seconds)
@@ -333,6 +331,7 @@ class Scheduler:
                 if len(category) == 1:
                     if category in time_letter_dict.keys():
                         time += time_letter_dict[category] * float(val)
+                        break
 
                 else:
                     # If a partial match is found with any of the keys
@@ -340,14 +339,12 @@ class Scheduler:
                     # as opposed to single letters
 
                     for string in time_word_dict.keys():
-                        if (
-                                lev.distance(category.lower(), string.lower()) <= 1
-                        ):  # If str has 1 or less different letters (For plural)
+                        if lev.distance(category.lower(), string.lower()) <= 1:
                             time += time_word_dict[string] * float(val)
                             break
 
             if time > 0:  # If we found time
-                return datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=time)
+                return utcnow() + datetime.timedelta(seconds=time)
 
             raise ValueError("Failed time conversion.")
 
@@ -358,7 +355,7 @@ class Scheduler:
                 model = await UserModel.filter(user_id=user_id).first()
                 if model:
                     timezone = model.tz
-                    assert timezone is not None  # Fucking pointless, I hate you pyright
+                    assert timezone is not None
 
             time = dateparser.parse(
                 time_string, settings={"RETURN_AS_TIMEZONE_AWARE": True, "TIMEZONE": timezone, "NORMALIZE": True}
@@ -367,7 +364,7 @@ class Scheduler:
             if not time:
                 raise ValueError("Time could not be parsed. (absolute)")
 
-            if future_time and time < datetime.datetime.now(datetime.timezone.utc):
+            if future_time and time < utcnow():
                 raise ValueError("Time is not in the future!")
 
             return time

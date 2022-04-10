@@ -15,9 +15,9 @@ class AiryPlugin(lightbulb.Plugin):
         super().__init_subclass__()
         cls.category: str = pathlib.Path(inspect.getfile(cls)).parent.stem
 
-    def __init__(self, category: t.Optional[str] = None, name: t.Optional[str] = None):
+    def __init__(self, name, category: t.Optional[str] = None):
         super().__init__(name=name)
 
     @property
     def bot(self) -> Airy:
-        return self._app
+        return self._app  # type: ignore

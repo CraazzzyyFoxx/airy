@@ -163,8 +163,8 @@ async def tempmute(ctx: AirySlashContext,
 
     config = await GuildModel.filter(guild_id=ctx.guild_id).first()
 
-    if config and not config.mute_role_id:
-        return await ctx.respond('Mute role missing', flags=hikari.MessageFlag.EPHEMERAL)
+    if not config or not config.mute_role_id:
+        return await ctx.respond(embed=RespondEmbed.error('Mute role missing'), flags=hikari.MessageFlag.EPHEMERAL)
 
     await ctx.bot.rest.add_role_to_member(ctx.guild_id, user, config.mute_role_id, reason=reason)
 
@@ -202,8 +202,8 @@ async def member_mute(ctx: AirySlashContext,
     """
 
     config = await GuildModel.filter(guild_id=ctx.guild_id).first()
-    if config is None or not config.mute_role_id:
-        return await ctx.respond('Mute role missing', flags=hikari.MessageFlag.EPHEMERAL)
+    if not config or not config.mute_role_id:
+        return await ctx.respond(embed=RespondEmbed.error('Mute role missing'), flags=hikari.MessageFlag.EPHEMERAL)
 
     if reason is None:
         reason = f'Action done by {ctx.author.username} (ID: {ctx.author.id})'
@@ -235,27 +235,22 @@ async def selfmute(ctx: AirySlashContext, duration: str):
     Do not ask a moderator to unmute you.
     """
 
-    reminder = ctx.bot.get_plugin('Reminder')
-    if reminder is None:
-        return await ctx.respond('Sorry, this functionality is currently unavailable. Try again later?',
-                                 flags=hikari.MessageFlag.EPHEMERAL)
-
     config = await GuildModel.filter(guild_id=ctx.guild_id).first()
-    if config and not config.mute_role_id:
-        return await ctx.respond('Mute role missing', flags=hikari.MessageFlag.EPHEMERAL)
+    if not config or not config.mute_role_id:
+        return await ctx.respond(embed=RespondEmbed.error('Mute role missing'), flags=hikari.MessageFlag.EPHEMERAL)
 
     if ctx.author.id in config.muted_members:
-        return await ctx.respond('Somehow you are already muted',
+        return await ctx.respond(embed=RespondEmbed.error('Somehow you are already muted'),
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
     duration = await ctx.bot.scheduler.convert_time(duration)
 
     if duration > (utcnow() + datetime.timedelta(days=1)):
-        return await ctx.respond('Duration is too long. Must be at most 24 hours.',
+        return await ctx.respond(embed=RespondEmbed.error('Duration is too long. Must be at most 24 hours.'),
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
     if duration < (utcnow() + datetime.timedelta(minutes=5)):
-        return await ctx.respond('Duration is too short. Must be at least 5 minutes.',
+        return await ctx.respond(embed=RespondEmbed.error('Duration is too short. Must be at least 5 minutes.'),
                                  flags=hikari.MessageFlag.EPHEMERAL)
 
     delta = human_timedelta(duration, source=utcnow())
@@ -272,7 +267,8 @@ async def selfmute(ctx: AirySlashContext, duration: str):
     config.muted_members.append(ctx.author.id)
     await config.save()
 
-    await ctx.respond(f'\N{OK HAND SIGN} Muted for {delta}. Be sure not to bother anyone about it.')
+    await ctx.respond(embed=RespondEmbed.success(title=f'Muted for {delta}',
+                                                 description='Be sure not to bother anyone about it.'))
 
 
 @mod_plugin.command()
@@ -299,7 +295,8 @@ async def mute_role_stats(ctx: AirySlashContext):
     """
     config = await GuildModel.filter(guild_id=ctx.guild_id).first()
     if not config:
-        return ctx.respond('No mute role setup', flags=hikari.MessageFlag.EPHEMERAL)
+        return ctx.respond(embed=RespondEmbed.error('No mute role setup'),
+                           flags=hikari.MessageFlag.EPHEMERAL)
     role = ctx.bot.cache.get_role(config.mute_role_id)
     if role is not None:
         total = len(config.muted_members)
@@ -335,7 +332,8 @@ async def mute_role_update(ctx: AirySlashContext):
                lightbulb.utils.find((await ctx.bot.rest.fetch_roles(ctx.guild_id)),
                                     predicate=lambda r: r.id == config.mute_role_id)
     else:
-        return await ctx.respond('No mute role has been set up to update.', flags=hikari.MessageFlag.EPHEMERAL)
+        return await ctx.respond(embed=RespondEmbed.error('No mute role has been set up to update.'),
+                                 flags=hikari.MessageFlag.EPHEMERAL)
 
     await ctx.respond(flags=hikari.MessageFlag.LOADING)
 
@@ -436,35 +434,6 @@ async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
     await ctx.bot.rest.delete_messages(channel, msgs)
 
     await ctx.respond(f"**{len(msgs)} messages deleted**", delete_after=5)
-
-
-@channel_cmd.child()
-@lightbulb.add_checks(
-    lightbulb.checks.has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS),
-    lightbulb.checks.bot_has_guild_permissions(hikari.Permissions.MODERATE_MEMBERS)
-)
-@lightbulb.option("reason", "the reason for the timeout", str, required=False,
-                  modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
-@lightbulb.option("time", "the duration of the timeout", str, required=False,
-                  modifier=lightbulb.commands.OptionModifier.CONSUME_REST)
-@lightbulb.option("user", "the user you want to be put in timeout", hikari.User, required=True)
-@lightbulb.command("timeout", "Timeout a member", pass_options=True)
-@lightbulb.implements(lightbulb.SlashSubCommand)
-async def channel_timeout(ctx: AirySlashContext, user: hikari.User, reason: str, time: str = None):
-    if time is None:
-        await ctx.respond(f"Removing timeout from **{user}**")
-    else:
-        now = utcnow()
-        time = await ctx.bot.scheduler.convert_time(time)
-
-        if (time - now).days > 28:
-            await ctx.respond("You can't time someone out for more than 28 days")
-            return
-
-        await ctx.respond(f"Attempting to timeout **{user}**")
-
-    await ctx.bot.rest.edit_member(user=user, guild=ctx.guild_id, communication_disabled_until=time, reason=reason)
-    await ctx.edit_last_response("Task finished successfully!")
 
 
 def load(bot):

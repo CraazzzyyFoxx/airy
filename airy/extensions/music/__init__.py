@@ -58,9 +58,9 @@ plugin = MusicPlugin()
 async def track_end(event: lavacord.TrackEndEvent):
     guild_player: AiryPlayer = event.player
 
-    states = plugin.bot.cache.get_voice_states_view_for_guild(guild_player.voice_state.guild_id)
+    states = plugin.bot.cache.get_voice_states_view_for_guild(guild_player.guild_id)
     voice_states = [state async for state in
-                    states.iterator().filter(lambda i: i.channel_id == guild_player.voice_state.channel_id)]
+                    states.iterator().filter(lambda i: i.channel_id == guild_player.voice_channel_id)]
 
     if len(voice_states) == 0 or not guild_player.queue:
         return await event.player.destroy()
@@ -138,7 +138,6 @@ async def queue_cmd(ctx: AirySlashContext):
     guild_player: AiryPlayer = await plugin.lavalink.get_player(ctx.guild_id)
     if not guild_player:
         return
-    # TODO: When u type queue slash command someone else can play with paginators
     pages = SimplePages(guild_player.queue.__str__(), ctx=ctx)
     await pages.send(ctx.interaction)
 

@@ -58,7 +58,7 @@ log_config = {
     "loggers": {
         "airy": {"level": "INFO",
                  "handlers": ["stream", "json", "logfile"], },
-        "lavacord": {"level": "DEBUG",
+        "lavacord": {"level": "INFO",
                      "handlers": ["stream", "json", "logfile"], },
         "lightbulb": {"level": "INFO",
                       "handlers": ["stream", "json", "logfile"], },

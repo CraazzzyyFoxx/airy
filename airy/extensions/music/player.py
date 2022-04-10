@@ -6,6 +6,7 @@ import typing as t
 import hikari
 import lavacord
 import miru
+from async_timeout import timeout
 
 from airy.core import AirySlashContext, Airy
 from airy.core.models.errors import *
@@ -19,23 +20,23 @@ class PlayerMenu(miru.View):
         super().__init__()
         self.player: AiryPlayer = player
 
-        self.currently_editing = asyncio.Lock()
+        self.currently_editing = asyncio.Event()
 
         default_buttons = self.get_default_buttons
         for default_button in default_buttons():
             self.add_item(default_button)
 
-    async def forced_release(self):
-        await asyncio.sleep(5)
-        self.currently_editing.release()
-
     async def __aenter__(self):
-        self.forced_release_task: asyncio.Task = self.player.node.bot.create_task(self.forced_release())  # type: ignore
-        await self.currently_editing.acquire()
+        try:
+            if self.currently_editing.is_set():
+                await self.currently_editing.wait()
+            else:
+                self.currently_editing.set()
+        except:
+            pass
 
-    async def __aexit__(self, exc_type, exc, tb):
-        self.currently_editing.release()
-        self.forced_release_task.cancel()
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.currently_editing.clear()
 
     async def view_check(self, ctx: miru.ViewContext) -> bool:
         try:
@@ -55,7 +56,7 @@ class PlayerMenu(miru.View):
             return False
 
     def get_default_buttons(self) -> t.List[PlayerButton[PlayerMenuT]]:
-        guild_id = self.player.voice_state.guild_id
+        guild_id = self.player.guild_id
         return [
             SkipToButton(guild_id),
             PreviousButton(guild_id),
@@ -79,24 +80,27 @@ class PlayerMenu(miru.View):
 
     async def send_menu_component(self, ctx: miru.ViewContext):
         async with self:
-            kwargs = await self.get_kwargs()
+            async with timeout(3):
+                kwargs = await self.get_kwargs()
 
-            if await self.maybe_resend():
-                await self.player.resend_menu()
-            else:
-                await ctx.edit_response(**kwargs)
+                if await self.maybe_resend():
+                    await self.player.resend_menu()
+                else:
+                    await ctx.edit_response(**kwargs)
 
     async def send_menu(self):
         async with self:
-            kwargs = await self.get_kwargs()
+            async with timeout(3):
+                kwargs = await self.get_kwargs()
 
-            if await self.maybe_resend():
-                await self.player.resend_menu()
-            else:
-                await self._message.edit(**kwargs)
+                if await self.maybe_resend():
+                    await self.player.resend_menu()
+                else:
+                    await self._message.edit(**kwargs)
 
     async def stop(self) -> None:
-        await helpers.maybe_delete(self._message)
+        if self.message:
+            await helpers.maybe_delete(self._message)
         super().stop()
 
     def create_embed(self):

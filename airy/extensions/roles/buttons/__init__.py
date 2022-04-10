@@ -7,7 +7,6 @@ import miru
 from airy.core import AirySlashContext, AiryPlugin, ActionMenusModel, ActionMenusButtonModel
 from airy.utils import RateLimiter, BucketType, helpers, has_permissions, RespondEmbed, FieldPageSource, \
     AiryPages
-
 from .enums import button_styles
 from .menu import MenuView
 
@@ -18,8 +17,8 @@ role_buttons = AiryPlugin("RoleButtons")
 role_button_ratelimiter = RateLimiter(2, 1, BucketType.MEMBER, wait=False)
 
 
-@role_buttons.listener(hikari.RoleDeleteEvent, bind=True)
-async def rolebutton_role_delete_listener(plugin: AiryPlugin, event: hikari.RoleDeleteEvent) -> None:
+@role_buttons.listener(hikari.RoleDeleteEvent)
+async def rolebutton_role_delete_listener(event: hikari.RoleDeleteEvent) -> None:
     models = await ActionMenusModel.filter(guild_id=event.guild_id).all().prefetch_related("buttons")
     for model in models:
         for button in model.buttons:
@@ -54,18 +53,15 @@ async def rolebutton_listener(plugin: AiryPlugin, event: miru.ComponentInteracti
 
     if not role:
         embed = RespondEmbed.error(title="Orphaned",
-                                   description="The role this button was pointing to was deleted! "
-                                               "Please notify an administrator!")
+                                   description="The role this button was pointing to was deleted!")
         await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
         return
 
     me = plugin.app.cache.get_member(event.context.guild_id, plugin.bot.user_id)
-    assert me is not None
 
     if not helpers.includes_permissions(lightbulb.utils.permissions_for(me), hikari.Permissions.MANAGE_ROLES):
         embed = RespondEmbed.error(title="Missing Permissions",
-                                   description="Bot does not have `Manage Roles` permissions! "
-                                               "Contact an administrator!")
+                                   description="Bot does not have `Manage Roles` permissions!")
         await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
         return
 
@@ -97,8 +93,8 @@ async def rolebutton_listener(plugin: AiryPlugin, event: miru.ComponentInteracti
 
     except (hikari.ForbiddenError, hikari.HTTPError):
         embed = RespondEmbed.error(title="Insufficient permissions",
-                                   description="Failed adding role due to an issue with permissions and/"
-                                               "or role hierarchy! Please contact an administrator!", )
+                                   description="""Failed adding role due to an issue with permissions and/or role hierarchy! 
+                                                  Please contact an administrator!""")
         await event.context.respond(embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
 
 

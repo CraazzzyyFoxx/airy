@@ -10,15 +10,13 @@ import typing as t
 import hikari
 import lightbulb
 import miru
-import aerich
-
 from miru.ext import nav
 from tortoise.transactions import in_transaction
 
 import airy
+from airy.config.database import db_config
 from airy.core import AuthorOnlyNavigator, AiryPrefixContext, AuthorOnlyView, Airy, BlacklistModel, GuildModel
 from airy.utils import RespondEmbed
-from airy.config.database import db_config, tortoise_config
 
 logger = logging.getLogger(__name__)
 
