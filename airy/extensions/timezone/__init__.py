@@ -11,7 +11,7 @@ from fuzzywuzzy import process
 
 from airy.core.bot import Airy
 from airy.core.models import AirySlashContext, UserModel
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 from airy.utils import SimplePages, RespondEmbed, format_dt
 
 logger = logging.getLogger(__name__)

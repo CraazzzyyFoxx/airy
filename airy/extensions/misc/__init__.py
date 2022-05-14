@@ -6,7 +6,7 @@ import lightbulb
 from lightbulb import plugins
 
 from airy.core import Airy, AirySlashContext
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 
 misc = plugins.Plugin("Misc")
 

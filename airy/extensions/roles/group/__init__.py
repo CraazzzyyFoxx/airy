@@ -56,6 +56,7 @@ class GroupRolePlugin(AiryPlugin):
                     return
 
     async def on_member_update(self, event: hikari.MemberUpdateEvent):
+        # TODO: Пофиксить логику выдачи ролей в TOPDOWN ветке  
         if event.member is None or event.old_member is None or len(event.member.role_ids) < 1:
             return
 

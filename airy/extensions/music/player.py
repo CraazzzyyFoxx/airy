@@ -19,7 +19,6 @@ class PlayerMenu(miru.View):
     def __init__(self, player: AiryPlayer):
         super().__init__()
         self.player: AiryPlayer = player
-
         self.currently_editing = asyncio.Event()
 
         default_buttons = self.get_default_buttons
@@ -101,7 +100,10 @@ class PlayerMenu(miru.View):
     async def stop(self) -> None:
         if self.message:
             await helpers.maybe_delete(self._message)
-        super().stop()
+        try:
+            super().stop()  # TODO: Fix KeyError
+        except KeyError:
+            pass
 
     def create_embed(self):
         track = self.player.queue.current_track
@@ -136,13 +138,13 @@ class PlayerMenu(miru.View):
 class AiryPlayer(lavacord.Player):
     def __init__(self,
                  guild_id: hikari.Snowflake,
-                 channel_id:
-                 hikari.Snowflake,
+                 channel_id: hikari.Snowflake,
                  *,
                  node: lavacord.Node,
                  text_channel: hikari.Snowflake = None):
         super().__init__(guild_id, channel_id, node=node)
-        self.menu: t.Optional[PlayerMenu] = None
+        self.volume = 30
+        self.menu: PlayerMenu = PlayerMenu(self)
         self.text_channel_id = text_channel
 
     @property
@@ -166,5 +168,5 @@ class AiryPlayer(lavacord.Player):
             await self.menu.start(ctx.channel_id)
 
     async def destroy(self):
-        await super().destroy()
         await self.menu.stop()
+        await super().destroy()

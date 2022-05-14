@@ -14,6 +14,7 @@ from tortoise import Tortoise
 
 from airy.config import tortoise_config, bot_config, BotConfig
 from airy.utils.time import utcnow, format_dt
+from ..api.client import HttpServer
 from ..log import log_config
 from ..models.context import *
 from ..scheduler import Scheduler
@@ -31,8 +32,8 @@ class Airy(BotApp, ABC):
             intents=hikari.Intents.ALL,
             help_slash_command=False,
             logs=log_config,
-            cache_settings=hikari.CacheSettings(
-                components=(hikari.CacheComponents.GUILDS
+            cache_settings=hikari.impl.config.CacheSettings(
+                components=(hikari.impl.config.CacheComponents.GUILDS
                             | hikari.CacheComponents.GUILD_CHANNELS
                             | hikari.CacheComponents.MEMBERS
                             | hikari.CacheComponents.ROLES
@@ -51,7 +52,7 @@ class Airy(BotApp, ABC):
 
         self.redis = aioredis.from_url(url="redis://localhost:6379")
         self._scheduler = Scheduler(self)
-
+        self.http_server = HttpServer()
         self.load_extensions_from("./airy/extensions")
         self.create_subscriptions()
         miru.load(self)
@@ -137,6 +138,8 @@ class Airy(BotApp, ABC):
                         pass
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.http_server.start())
         await self.connect_db()
         await self.scheduler.start()
 

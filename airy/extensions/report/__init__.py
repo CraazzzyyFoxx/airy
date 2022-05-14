@@ -6,7 +6,7 @@ import lightbulb
 import miru
 
 from airy.core import AirySlashContext, AiryMessageContext, AiryContext, ReportModel
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 from airy.utils import helpers, RespondEmbed
 
 logger = logging.getLogger(__name__)

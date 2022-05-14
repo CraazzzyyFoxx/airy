@@ -6,7 +6,7 @@ import hikari
 import lightbulb
 import miru
 
-from airy.etc import RespondEmojiEnum
+from airy.static  import RespondEmojiEnum
 from .views import AuthorOnlyView
 
 __all__ = ["AiryContext", "AirySlashContext", "AiryMessageContext", "AiryUserContext", "AiryPrefixContext"]

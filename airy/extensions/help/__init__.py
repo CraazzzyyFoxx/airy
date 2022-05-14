@@ -6,7 +6,7 @@ import hikari
 import lightbulb
 
 from airy.core import Airy, AirySlashContext
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 
 help = lightbulb.Plugin("Help")
 

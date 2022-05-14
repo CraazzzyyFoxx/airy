@@ -5,8 +5,7 @@ import lightbulb
 
 from airy.core import Airy
 from airy.core.models import AirySlashContext
-from airy.etc import RespondEmojiEnum
-from airy.etc import get_perm_str
+from airy.static import RespondEmojiEnum, get_perm_str
 from airy.utils import RespondEmbed
 
 logger = logging.getLogger(__name__)

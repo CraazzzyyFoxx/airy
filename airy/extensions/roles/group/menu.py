@@ -6,7 +6,7 @@ import hikari
 import miru
 
 from airy.core import AirySlashContext, EntryRoleGroupModel, GroupRoleModel, MenuViewAuthorOnly
-from airy.etc import ColorEnum, MenuEmojiEnum
+from airy.static import ColorEnum, MenuEmojiEnum
 from airy.utils import utcnow, helpers, RespondEmbed
 
 
@@ -35,7 +35,7 @@ class MenuView(MenuViewAuthorOnly):
         return [AddRoleButton(), RemoveRoleButton(), DestroyButton(), QuitButton()]
 
     def get_kwargs(self):
-        embed = hikari.Embed(title="Group Role",
+        embed = hikari.Embed(title=f"{self.role.name}",
                              color=ColorEnum.teal,
                              timestamp=utcnow())
         entries_description = []
@@ -112,7 +112,7 @@ class RemoveRoleButton(miru.Button):
 
 class DestroyButton(miru.Button[ViewT]):
     def __init__(self):
-        super().__init__(label="Destroy", style=hikari.ButtonStyle.DANGER, emoji=MenuEmojiEnum.TRASHCAN)
+        super().__init__(label="Delete", style=hikari.ButtonStyle.DANGER, emoji=MenuEmojiEnum.TRASHCAN)
 
     async def callback(self, context: miru.ViewContext) -> None:
         await self.view.model.delete()

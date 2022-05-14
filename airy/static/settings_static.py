@@ -227,7 +227,7 @@ policy_strings = {
 **2.** If ignored, the user is warned
 **3.** If also ignored, the action below is executed on the user
 
-Other parameters such as the duration of temporary punishment (if temporary), the deletion of message, excluded roles/channels, etc.. **are inherited from the original policy.**\n""",
+Other parameters such as the duration of temporary punishment (if temporary), the deletion of message, excluded roles/channels, static.. **are inherited from the original policy.**\n""",
     },
     "perspective": {
         "name": "Perspective",

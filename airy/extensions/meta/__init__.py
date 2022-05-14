@@ -10,7 +10,7 @@ from pygount import SourceAnalysis
 
 import airy
 from airy.core import Airy, AiryPlugin, GuildModel
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 
 
 class MetaPlugin(AiryPlugin):

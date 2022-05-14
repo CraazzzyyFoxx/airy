@@ -11,7 +11,7 @@ import lightbulb
 from airy.config import bot_config
 from airy.core import Airy, AiryContext, AirySlashContext, AiryPrefixContext
 from airy.core.models.errors import *
-from airy.etc.perms_str import get_perm_str
+from airy.static.perms_str import get_perm_str
 from airy.utils import helpers, RespondEmbed, utcnow
 
 logger = logging.getLogger(__name__)

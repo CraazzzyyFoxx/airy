@@ -103,7 +103,7 @@ async def play_cmd(ctx: AirySlashContext):
     data = await guild_player.search_tracks(query, ctx.member.id)
 
     if not data:  # tracks is empty
-        await ctx.respond("Could not find any video of the search query.")
+        await ctx.respond(embed=RespondEmbed.error("Could not find any video of the search query."))
         return
     if isinstance(data, lavacord.Playlist):
         guild_player.queue.extend(data.tracks)

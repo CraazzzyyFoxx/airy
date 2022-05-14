@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Union, List, TYPE_CHECKING
 import hikari
 import miru
 
-from airy.etc import ColorEnum
+from airy.static import ColorEnum
 from . import menus
 from .buttons import (AiryPagesT,
                       FirstButton,
