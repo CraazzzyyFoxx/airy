@@ -30,6 +30,7 @@ class MusicPlugin(AiryPlugin):
 
     async def start_lavalink(self, _: hikari.StartedEvent) -> None:
         self.lavalink = lavacord.LavalinkClient(self.bot)
+        await self.bot.wait_until_started()
         await lavacord.NodePool.create_node(bot=self.bot,
                                             host=lavalink_config.url,
                                             port=2333,

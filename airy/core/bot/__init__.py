@@ -32,14 +32,15 @@ class Airy(BotApp, ABC):
             intents=hikari.Intents.ALL,
             help_slash_command=False,
             logs=log_config,
+            banner=None,
             cache_settings=hikari.impl.config.CacheSettings(
-                components=(hikari.impl.config.CacheComponents.GUILDS
-                            | hikari.CacheComponents.GUILD_CHANNELS
-                            | hikari.CacheComponents.MEMBERS
-                            | hikari.CacheComponents.ROLES
-                            | hikari.CacheComponents.INVITES
-                            | hikari.CacheComponents.VOICE_STATES
-                            | hikari.CacheComponents.MESSAGES),
+                components=(hikari.api.CacheComponents.GUILDS
+                            | hikari.api.CacheComponents.GUILD_CHANNELS
+                            | hikari.api.CacheComponents.MEMBERS
+                            | hikari.api.CacheComponents.ROLES
+                            | hikari.api.CacheComponents.INVITES
+                            | hikari.api.CacheComponents.VOICE_STATES
+                            | hikari.api.CacheComponents.MESSAGES),
                 max_messages=1000,
             ),
 
@@ -52,7 +53,7 @@ class Airy(BotApp, ABC):
 
         self.redis = aioredis.from_url(url="redis://localhost:6379")
         self._scheduler = Scheduler(self)
-        self.http_server = HttpServer()
+        # self.http_server = HttpServer()
         self.load_extensions_from("./airy/extensions")
         self.create_subscriptions()
         miru.load(self)
@@ -139,12 +140,13 @@ class Airy(BotApp, ABC):
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
         loop = asyncio.get_event_loop()
-        loop.create_task(self.http_server.start())
+        # loop.create_task(self.http_server.start())
         await self.connect_db()
         await self.scheduler.start()
 
-    async def on_started(self, _: hikari.StartedEvent) -> None:
+    async def on_started(self, event: hikari.StartedEvent) -> None:
         user = self.get_me()
+        print(user)
         self._user_id = user.id if user else None
 
     async def on_stopping(self, event: hikari.StoppingEvent) -> None:
