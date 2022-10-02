@@ -5,7 +5,6 @@ import pathlib
 import typing as t
 from abc import ABC
 
-import aioredis
 import hikari
 import lightbulb
 import miru
@@ -14,11 +13,9 @@ from tortoise import Tortoise
 
 from airy.config import tortoise_config, bot_config, BotConfig
 from airy.utils.time import utcnow, format_dt
-from ..api.client import HttpServer
 from ..log import log_config
 from ..models.context import *
 from ..scheduler import Scheduler
-from ...utils import db_backup
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +45,9 @@ class Airy(BotApp, ABC):
         self._started = asyncio.Event()
         self._user_id: t.Optional[hikari.Snowflake] = None
         self._is_started = False
-        self.skip_first_db_backup = True  # Set to False to backup DB on bot startup too
         self._config = bot_config
 
-        self.redis = aioredis.from_url(url="redis://localhost:6379")
+        # self.redis = aioredis.from_url(url="redis://localhost:6379")
         self._scheduler = Scheduler(self)
         # self.http_server = HttpServer()
         self.load_extensions_from("./airy/extensions")
@@ -139,12 +135,10 @@ class Airy(BotApp, ABC):
                         pass
 
     async def on_starting(self, _: hikari.StartingEvent) -> None:
-        loop = asyncio.get_event_loop()
-        # loop.create_task(self.http_server.start())
         await self.connect_db()
         await self.scheduler.start()
 
-    async def on_started(self, event: hikari.StartedEvent) -> None:
+    async def on_started(self, _: hikari.StartedEvent) -> None:
         user = self.get_me()
         print(user)
         self._user_id = user.id if user else None
@@ -206,25 +200,6 @@ class Airy(BotApp, ABC):
                 embed.set_thumbnail(user.avatar_url if user else None)
                 await event.message.respond(embed=embed)
                 return
-
-    async def backup_db(self) -> None:
-        if self.skip_first_db_backup:
-            logging.info("Skipping database backup for this day...")
-            self.skip_first_db_backup = False
-            return
-
-        file = await db_backup.backup_database()
-        await self.wait_until_started()
-
-        if bot_config.info_channel:
-            await self.rest.create_message(
-                bot_config.info_channel,
-                f"Database Backup: {format_dt(utcnow())}",
-                attachment=file,
-            )
-            return logging.info("Database backup complete, database backed up to specified Discord channel.")
-
-        logging.info("Database backup complete.")
 
     def run(self, *args, **kwargs) -> None:
         if os.name != "nt":

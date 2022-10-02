@@ -7,8 +7,6 @@ class DatabaseConfig(BaseSettings):
     password: str
     port: int
     user: str
-    initialize: str
-    migrate: str
 
     class Config:
         env_file = ".env"

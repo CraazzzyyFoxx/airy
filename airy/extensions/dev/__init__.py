@@ -301,67 +301,6 @@ async def shutdown_cmd(ctx: AiryPrefixContext) -> None:
 
 
 @dev.command
-@lightbulb.command("pg_dump", "Back up the database.", aliases=["dbbackup", "backup"])
-@lightbulb.implements(lightbulb.PrefixCommand)
-async def backup_db_cmd(ctx: AiryPrefixContext) -> None:
-    await ctx.app.backup_db()
-    await ctx.event.message.add_reaction("✅")
-    await ctx.respond("📤 Database backup complete.")
-
-
-@dev.command
-@lightbulb.option("--ignore-errors", "Ignore all errors.", type=bool, default=False)
-@lightbulb.command("pg_restore", "Restore database from attached dump file.", aliases=["restore"])
-@lightbulb.implements(lightbulb.PrefixCommand)
-async def restore_db(ctx: AiryPrefixContext) -> None:
-    if not ctx.attachments or not ctx.attachments[0].filename.endswith(".pgdmp"):
-        embed = RespondEmbed.error(title="No valid attachment",
-                                   description=f"Required dump-file attachment not found. Expected a `.pgdmp` file.")
-        await ctx.respond(embed=embed)
-        return
-
-    await ctx.app.rest.trigger_typing(ctx.channel_id)
-
-    if not os.path.isdir(os.path.join(airy.ROOT_DIR, "db", "backup")):
-        os.mkdir(os.path.join(airy.ROOT_DIR, "db", "backup"))
-
-    path = os.path.join(airy.ROOT_DIR, "db", "backup", "dev_pg_restore_snapshot.pgdmp")
-    with open(path, "wb") as file:
-        file.write((await ctx.attachments[0].read()))
-    try:
-        await ctx.event.message.delete()
-    except:
-        pass
-
-    # Drop all tables
-    async with in_transaction("default") as con:
-        records = await con.fetch(
-            """
-        SELECT * FROM pg_catalog.pg_tables 
-        WHERE schemaname='public'
-        """
-        )
-        for record in records:
-            await con.execute(f"""DROP TABLE IF EXISTS {record.get("tablename")} CASCADE""")
-
-    _dsn = f"postgres://{db_config.user}:{db_config.password}@{db_config.host}{db_config.port}/{db_config.db}"
-    arg = "-e" if not ctx.options["--ignore-errors"] else ""
-    code = os.system(f"pg_restore {path} {arg} -n 'public' -j 4 -d {_dsn}")
-
-    if code != 0 and not ctx.options["--ignore-errors"]:
-        await ctx.respond("❌ **Fatal:** Failed to load database backup, database corrupted. Shutting down...")
-        return await ctx.app.close()
-
-    elif code != 0:
-        await ctx.respond(
-            "❌ **Fatal:** Failed to load database backup, database may be corrupted. Shutdown recommended."
-        )
-
-    else:
-        await ctx.respond("📥 Restored database from backup file.")
-
-
-@dev.command
 @lightbulb.option("user", "The user to manage.", type=hikari.User)
 @lightbulb.option("mode", "The mode of operation.", type=str)
 @lightbulb.command("blacklist", "Commands to manage the blacklist.", pass_options=True)

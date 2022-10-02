@@ -436,9 +436,9 @@ async def channel_purge_messages(ctx: lightbulb.Context, amount: int) -> None:
     await ctx.respond(f"**{len(msgs)} messages deleted**", delete_after=5)
 
 
-def load(bot):
-    bot.add_plugin(mod_plugin)
-
-
-def unload(bot):
-    bot.remove_plugin(mod_plugin)
+# def load(bot):
+#     bot.add_plugin(mod_plugin)
+#
+#
+# def unload(bot):
+#     bot.remove_plugin(mod_plugin)
